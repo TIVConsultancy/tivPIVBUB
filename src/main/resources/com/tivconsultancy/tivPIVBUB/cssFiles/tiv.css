@@ -1,0 +1,133 @@
+
+/*.tab-pane .tab-header-area .tab-header-background {    
+    -fx-background-color: #f0f0f0;
+}*/
+
+.combo-box {
+    -fx-pref-width: 100;
+    -fx-pref-height: 10;
+    -fx-background-color: transparent;
+}
+
+/*.combo-box .cell:selected {
+    -fx-text-fill: rgba(47, 134, 215, 0.75);
+}*/
+
+.combo-box-popup .list-view .list-cell:hover {
+    -fx-background-color: rgba(47, 134, 215, 0.75);
+}
+
+.combo-box .cell:selected {
+    -fx-background-color: rgba(47, 134, 215, 0.75);
+}
+
+/*.combo-box{
+    -fx-background-color: #f0f0f0;
+}*/
+
+.text-field {
+    -fx-pref-width: 100;
+    -fx-pref-height: 10;
+}
+
+.tree-cell:focused {
+    -fx-background-color: rgba(47, 134, 215, 0.75);
+}
+
+/*.myTree .tree-cell {
+    -fx-background-color: #0093ff ;
+    -fx-text-fill: #ffffff ;
+}*/
+
+.menu-button {
+    -fx-background-color: transparent;
+}
+
+.menu-bar {
+    -fx-background-color: white;
+}
+
+.menu:hover {
+    -fx-background-color: rgba(47, 134, 215, 0.5);
+}
+
+.menu-item:focused {
+    -fx-background-color: rgba(47, 134, 215, 0.85);
+}
+
+.menu:showing {
+    -fx-background-color: rgba(47, 134, 215, 0.75);
+}
+
+.chart-series-line {    
+    -fx-stroke-width: 1px;
+}
+
+.chart-line-symbol {
+    /*-fx-shape: "M 0.0 10.0 L 3.0 3.0 L 10.0 0.0 L 3.0 -3.0 L 0.0 -10.0 L -3.0 -3.0 L -10.0 0.0 L -3.0 3.0 Z ";*/
+    /*-fx-shape: "M 0 0 L 1 1 L 1 0 L 0 1 L 0 0 Z ";*/
+    /*-fx-shape: "M 0 1 L 1 1 L 1 0 L 0 1 L 0 0 Z ";*/
+    
+    /*-fx-shape: "M 0 0 L 0 1 L 1 1 L 1 0 Z ";*/
+    /*-fx-shape: "M 0 0 L 1 1 L 1 0 Z ";*/
+    /*-fx-shape: "M 0 0 L 0 1 L 1 0 Z ";*/
+    /*-fx-shape: "M 0 0 L 0 1 L 1 1 Z ";*/
+    /*-fx-shape: "M 0 0 L 0 1 L 1 0 L 1 1 L 0 0 Z ";*/
+    
+    /*-fx-shape: "M 0 1 L 1 1 L 1 0 L 0 1 L 0 0 Z ";*/
+    /*-fx-opacity: 0.5;*/
+    -fx-padding: 4px 4px 4px 4px;
+}
+
+
+/*.Settings-tree .tree-cell {
+    -fx-text-fill: #0093ff;
+    -fx-background-color: #cccccc;
+    -fx-stroke: #0093ff;
+    -fx-pref-height: 30;
+}*/
+
+/*.Settings-tree .tree-cell:selected {
+    -fx-text-fill: #FFFFFF;
+}*/
+
+/*.combo-box-base {
+    -fx-background-color: , -fx-outer-border, -fx-inner-border, -fx-body-color;
+    -fx-background-insets: 0 0 -1 0, 0, 1, 2;
+    -fx-background-radius: 3px, 3px, 2px, 1px;
+    -fx-padding: 0.333333em 0.666667em 0.333333em 0.666667em;  4 8 4 8 
+    -fx-text-fill: -fx-text-base-color;
+    -fx-alignment: CENTER;
+    -fx-content-display: LEFT;
+}*/
+
+
+/*.tab-pane {  
+  -fx-tab-min-height:50px;
+  -fx-tab-max-height:50px;
+}*/
+
+/*.menu-bar {
+    -fx-background-color: #c9c9c9;
+    -fx-border-color:  #yellow;
+    -fx-border-style: solid;
+    -fx-border-width: 5px;
+     -fx-border-radius: 5px;
+     -fx-border-insets: 1 px;
+}*/
+
+/*.tabController .tab-header-area .tab-header-background {
+    -fx-background-color: #c9c9c9;
+}
+
+.tabImages {
+    -fx-background-color: #c9c9c9;
+}
+
+.imageTree {
+    -fx-background-color: #c9c9c9
+}
+
+.tree-cell {
+    -fx-background-color: #c9c9c9;
+}*/
