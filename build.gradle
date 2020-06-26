@@ -35,9 +35,9 @@ dependencies {
     compile 'org.jfxtras:jmetro:8.6.5'
     compile group: 'commons-logging', name: 'commons-logging', version: '1.1.1'
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
-    compile 'com.github.TIVConsultancy:openTIV:DevelopingDatabaseStructure-SNAPSHOT'
-    compile 'com.github.TIVConsultancy:tivGUI:master-SNAPSHOT'
-//    compile project(":openTIV")
-//    compile project(":tivGUI")
+//    compile 'com.github.TIVConsultancy:openTIV:DevelopingDatabaseStructure-SNAPSHOT'
+//    compile 'com.github.TIVConsultancy:tivGUI:master-SNAPSHOT'
+    compile project(":openTIV")
+    compile project(":tivGUI")
     compile project(":tivPIV")
 }

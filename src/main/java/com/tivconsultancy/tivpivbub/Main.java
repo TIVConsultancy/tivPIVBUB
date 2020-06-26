@@ -50,8 +50,8 @@ public class Main extends Application {
         MainFrame.setIcons(new RecArea(null, null).getClass(), icons);
         MainFrame.setLoadPicture(new RecArea(null, null).getClass(), "/com/tivconsultancy/tivPIVBUB/icons/load.png");
 
-        StaticReferences.controller = new PIVController();
-        StaticReferences.controller.startNewMethod(new PIVMethod());
+        StaticReferences.controller = new PIVBUBController();
+        StaticReferences.controller.startNewMethod(new PIVBUBMethod());
         MainFrame tivGUI = new MainFrame();
         TIVScene scene = new TIVScene(tivGUI);
         StaticReferences.controller.setScene(scene);
@@ -60,7 +60,7 @@ public class Main extends Application {
         scene.getStylesheets().add(scene.getClass().getResource("/com/tivconsultancy/tivPIVBUB/cssFiles/tiv.css").toExternalForm());
 
         primaryStage.getIcons().addAll(MainFrame.getIcon());
-        primaryStage.setTitle("tivPIV");
+        primaryStage.setTitle("tivPIVBUB");
         primaryStage.setScene(scene);
         primaryStage.show();
         primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
