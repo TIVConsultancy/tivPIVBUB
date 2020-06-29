@@ -12,7 +12,10 @@ import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpiv.PIVController;
 import com.tivconsultancy.tivpiv.PIVMethod;
 import com.tivconsultancy.tivpiv.PIVStaticReferences;
+import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBBoundaryTracking;
+import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBDataHandling;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBEdges;
+import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBMergeShapeBoundTrack;
 
 /**
  *
@@ -27,7 +30,10 @@ public class PIVBUBMethod extends PIVMethod {
     
     private void initProtocols() {        
         methods.add(new NameObject<>("edgedetect", new Prot_tivPIVBUBEdges()), methods.getSize()-1);
-        System.out.println("");
+        methods.add(new NameObject<>("boundtrack", new Prot_tivPIVBUBBoundaryTracking()), methods.getSize()-1);
+        methods.add(new NameObject<>("result", new Prot_tivPIVBUBMergeShapeBoundTrack()), methods.getSize()-1);
+        methods.remove("data");
+        methods.add(new NameObject<>("data", new Prot_tivPIVBUBDataHandling()), methods.getSize()-1);
     }
     
     @Override
@@ -43,7 +49,8 @@ public class PIVBUBMethod extends PIVMethod {
             getProtocol("calculate").run();
             getProtocol("display").run();
             getProtocol("edgedetect").run();
-//            getProtocol("postproc").run();
+            getProtocol("boundtrack").run();
+            getProtocol("result").run();
             getProtocol("data").run();
 
             for (NameSpaceProtocolResults1D e : getProtocol("data").get1DResultsNames()) {
@@ -54,9 +61,6 @@ public class PIVBUBMethod extends PIVMethod {
         } catch (Exception ex) {
             throw ex;
         }
-//            for (NameSpaceProtocolResults1D e : p.get1DResultsNames()) {
-//                results1D.setResult(e.toString(), p.getOverTimesResult(e));
-//            }
 
     }
     

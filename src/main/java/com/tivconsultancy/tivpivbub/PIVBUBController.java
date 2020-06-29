@@ -6,12 +6,8 @@
 
 package com.tivconsultancy.tivpivbub;
 
-import com.tivconsultancy.opentiv.imageproc.primitives.ImageInt;
-import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpiv.PIVController;
-import com.tivconsultancy.tivpiv.data.DataPIV;
 import com.tivconsultancy.tivpivbub.data.DataBUB;
-import java.awt.image.BufferedImage;
 
 /**
  *
@@ -24,14 +20,27 @@ public class PIVBUBController extends PIVController {
     public int[][] iaEdgesSecond;
     
     public PIVBUBController(){
-        initDatabase();
+        super();
+        initDatabase();        
     }
+    
+    @Override
+    protected void initSubControllers() {
+        super.initSubControllers();
+        subSQL = new tivPIVBUBSubControllerSQL();        
+    }   
     
     public DataBUB getDataBUB(){
         return databaseBUB1Step;
     }
 
     private void initDatabase() {
+        databaseBUB1Step = new DataBUB(getSelecedIndex());
+    }
+    
+    @Override
+    public void startNewIndexStep() {
+        super.startNewIndexStep();
         databaseBUB1Step = new DataBUB(getSelecedIndex());
     }
     

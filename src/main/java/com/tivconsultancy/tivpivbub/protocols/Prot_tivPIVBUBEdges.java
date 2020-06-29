@@ -7,19 +7,27 @@
 package com.tivconsultancy.tivpivbub.protocols;
 
 import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges;
-import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges.returnCotnainer_EllipseFit;
+import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges.ReturnCotnainer_EllipseFit;
 import com.tivconsultancy.opentiv.helpfunctions.settings.SettingObject;
 import com.tivconsultancy.opentiv.helpfunctions.settings.SettingsCluster;
 import com.tivconsultancy.opentiv.highlevel.protocols.NameSpaceProtocolResults1D;
 import com.tivconsultancy.opentiv.highlevel.protocols.Protocol;
 import com.tivconsultancy.opentiv.highlevel.protocols.UnableToRunException;
+import com.tivconsultancy.opentiv.imageproc.img_io.IMG_Writer;
+import com.tivconsultancy.opentiv.imageproc.primitives.ImageGrid;
 import com.tivconsultancy.opentiv.imageproc.primitives.ImageInt;
+import com.tivconsultancy.opentiv.math.exceptions.EmptySetException;
+import static com.tivconsultancy.opentiv.velocimetry.boundarytracking.BoundTrackZiegenhein_2018.connectOpenEdges;
 import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpivbub.PIVBUBController;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -45,8 +53,14 @@ public class Prot_tivPIVBUBEdges extends Protocol {
     }
     
     private void buildLookUp() {
-        ((PIVBUBController) StaticReferences.controller).getDataBUB().setImage(outNames.Edges.toString(), edges1st.getBuffImage());
-        ((PIVBUBController) StaticReferences.controller).getDataBUB().setImage(outNames.ShapeFit.toString(), shapeFit.getBuffImage());
+        if(edges1st != null){
+            ((PIVBUBController) StaticReferences.controller).getDataBUB().setImage(outNames.EdgesShapeFit.toString(), edges1st.getBuffImage());
+        }
+        if(edges2nd != null){
+            ((PIVBUBController) StaticReferences.controller).getDataBUB().setImage(outNames.ShapeFit.toString(), shapeFit.getBuffImage());
+        }
+        
+        
     }
     
     @Override
@@ -56,7 +70,7 @@ public class Prot_tivPIVBUBEdges extends Protocol {
 
     @Override
     public List<String> getIdentForViews() {
-        return Arrays.asList(new String[]{outNames.Edges.toString(), outNames.ShapeFit.toString()});
+        return Arrays.asList(new String[]{outNames.EdgesShapeFit.toString(), outNames.ShapeFit.toString()});
     }
 
     @Override
@@ -75,21 +89,23 @@ public class Prot_tivPIVBUBEdges extends Protocol {
         PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
         ImageInt readFirst = new ImageInt(controller.getDataPIV().iaReadInFirst);
         ImageInt readSecond = new ImageInt(controller.getDataPIV().iaReadInSecond);
-        edges1st = OpenTIV_Edges.performEdgeDetecting(this, readFirst);    
+        edges1st = OpenTIV_Edges.performEdgeDetecting(this, readFirst);
         edges2nd = OpenTIV_Edges.performEdgeDetecting(this, readFirst);
+        controller.getDataBUB().iaEdgesRAWFirst = edges1st.clone().iaPixels;
+        controller.getDataBUB().iaEdgesRAWSecond = edges2nd.clone().iaPixels;
         if(edges1st!=null){
             edges1st = OpenTIV_Edges.performEdgeOperations(this, edges1st, readFirst);
-            ((PIVBUBController) StaticReferences.controller).iaEdgesFirst = edges1st.iaPixels;
             if(Boolean.valueOf(getSettingsValue("EllipseFit_Ziegenhein2019").toString())){
-                returnCotnainer_EllipseFit o = OpenTIV_Edges.performShapeFitting(this, edges1st);
-                shapeFit = o.oImage;
+                controller.getDataBUB().results_EFit = OpenTIV_Edges.performShapeFitting(this, edges1st);
+                shapeFit = controller.getDataBUB().results_EFit.oImage;
             }
+            controller.getDataBUB().iaEdgesFirst = edges1st.iaPixels;            
         }else{
             edges1st = null;
         }
         if(edges2nd!=null){
             edges2nd = OpenTIV_Edges.performEdgeOperations(this, edges2nd, readSecond);
-            ((PIVBUBController) StaticReferences.controller).iaEdgesSecond = edges2nd.iaPixels;
+            controller.getDataBUB().iaEdgesSecond= edges2nd.iaPixels;
         }else{
             edges2nd = null;
         }                                        
@@ -193,7 +209,7 @@ public class Prot_tivPIVBUBEdges extends Protocol {
     }
     
     private enum outNames{
-        Edges, ShapeFit
+        EdgesShapeFit, ShapeFit
     }
 
 }
