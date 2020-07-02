@@ -5,28 +5,20 @@
  */
 package com.tivconsultancy.tivpivbub.protocols;
 
-import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges;
-import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges.ReturnCotnainer_EllipseFit;
 import com.tivconsultancy.opentiv.helpfunctions.colorspaces.ColorSpaceCIEELab;
 import com.tivconsultancy.opentiv.helpfunctions.colorspaces.Colorbar;
-import com.tivconsultancy.opentiv.helpfunctions.settings.SettingObject;
-import com.tivconsultancy.opentiv.helpfunctions.settings.SettingsCluster;
 import com.tivconsultancy.opentiv.highlevel.protocols.NameSpaceProtocolResults1D;
 import com.tivconsultancy.opentiv.highlevel.protocols.Protocol;
 import com.tivconsultancy.opentiv.highlevel.protocols.UnableToRunException;
-import com.tivconsultancy.opentiv.imageproc.primitives.ImageGrid;
 import com.tivconsultancy.opentiv.imageproc.primitives.ImageInt;
 import com.tivconsultancy.opentiv.imageproc.primitives.ImagePoint;
 import com.tivconsultancy.opentiv.imageproc.shapes.Circle;
-import com.tivconsultancy.opentiv.math.algorithms.Averaging;
 import com.tivconsultancy.opentiv.math.algorithms.Sorting;
 import com.tivconsultancy.opentiv.math.exceptions.EmptySetException;
-import com.tivconsultancy.opentiv.math.interfaces.Value;
 import com.tivconsultancy.opentiv.math.primitives.OrderedPair;
 import com.tivconsultancy.opentiv.math.specials.EnumObject;
 import com.tivconsultancy.opentiv.physics.vectors.VelocityVec;
 import com.tivconsultancy.opentiv.postproc.vector.PaintVectors;
-import com.tivconsultancy.opentiv.velocimetry.boundarytracking.BoundTrackZiegenhein_2018;
 import com.tivconsultancy.opentiv.velocimetry.boundarytracking.CPXTr;
 import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpivbub.PIVBUBController;
