@@ -49,6 +49,7 @@ public class Main extends Application {
         icons.add("/com/tivconsultancy/tivPIVBUB/icons/Icon16x16.png");
         MainFrame.setIcons(new RecArea(null, null).getClass(), icons);
         MainFrame.setLoadPicture(new RecArea(null, null).getClass(), "/com/tivconsultancy/tivPIVBUB/icons/load.png");
+        MainFrame.setLogo(new RecArea(null, null).getClass(), "/com/tivconsultancy/tivPIVBUB/logo/Logo-BlackBlueText_noBckGr_s.png");
 
         StaticReferences.controller = new PIVBUBController();
         StaticReferences.controller.startNewMethod(new PIVBUBMethod());
