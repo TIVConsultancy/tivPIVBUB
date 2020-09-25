@@ -40,7 +40,7 @@ public class Main extends Application {
 
     public static void showEmptyMainFrame(Stage primaryStage) throws IOException {
 
-        StaticReferences.setStandardIcons(new RecArea(null, null), "com/tivconsultancy/tivPIVBUB/menuicons/");       
+        StaticReferences.setStandardIcons(new RecArea(null, null), "/com/tivconsultancy/tivPIVBUB/menuicons/");       
 
         List<String> icons = new ArrayList<>();
         icons.add("/com/tivconsultancy/tivPIVBUB/icons/Icon128x128.png");
