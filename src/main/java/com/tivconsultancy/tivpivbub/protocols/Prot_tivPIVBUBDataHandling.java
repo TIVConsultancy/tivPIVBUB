@@ -5,6 +5,7 @@
  */
 package com.tivconsultancy.tivpivbub.protocols;
 
+import com.tivconsultancy.opentiv.helpfunctions.io.Writer;
 import com.tivconsultancy.opentiv.helpfunctions.settings.SettingObject;
 import com.tivconsultancy.opentiv.helpfunctions.settings.SettingsCluster;
 import com.tivconsultancy.opentiv.highlevel.protocols.NameSpaceProtocolResults1D;
@@ -95,11 +96,12 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
         boolean bUPSERT = Boolean.valueOf(getSettingsValue("sql_upsert").toString());
         tivPIVBUBSubControllerSQL sql_Control = (tivPIVBUBSubControllerSQL) StaticReferences.controller.getSQLControler(null);
         sql_Control.setTimeStamp(getTimeStamp());
-        double dResolution = 10.0/ 100000.0;
+        double dResolution = Double.valueOf(getSettingsValue("data_Resolution").toString())/1000000.0;
+        String sExportPath = getSettingsValue("data_csvExportPath").toString();
 
         try {            
             if (Boolean.valueOf(this.getSettingsValue("sql_activation").toString())) {
-                dResolution = sql_Control.getResolution(expName) / 100000.0;
+//                dResolution = sql_Control.getResolution(expName) / 1000000.0;
 //                double dResolution = sql_Control.getResolution(expName) / 100000.0;
                 List<sqlEntryPIV> entriesPIV = new ArrayList<>();
                 for (Vector v : dataPIV.oGrid.getVectors()) {
@@ -107,7 +109,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                     double dPosY = (v.getPosY() - refPX_Y) * dResolution + refM_Y;
                     double dPosZ = refM_Z;
                     double dVX = v.getX() * dResolution * fps;
-                    double dVY = v.getY() * dResolution * fps;
+                    double dVY = -1.0*v.getY() * dResolution * fps;
                     entriesPIV.add(new sqlEntryPIV(expName, settingsPIVNamePIV, dPosX, dPosY, dPosZ, dVX, dVY));
                 }
                 if (bUPSERT) {
@@ -155,6 +157,49 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
         try {
             if(Boolean.valueOf(this.getSettingsValue("data_csvExport").toString())){
 //                mache export csv
+                List<String[]> lsOut = new ArrayList<>();
+                int time = (int) getTimeStamp();
+                for (Vector v : dataPIV.oGrid.getVectors()) {
+                    double dPosX = (v.getPosX() - refPX_X) * dResolution + refM_X;
+                    double dPosY = (v.getPosY() - refPX_Y) * dResolution + refM_Y;
+                    double dPosZ = refM_Z;
+                    double dVX = v.getX() * dResolution;
+                    double dVY = -1.0*v.getY() * dResolution;
+                    String[] sOut = new String[5];
+                    sOut[0] = String.valueOf(dPosX);
+                    sOut[1] = String.valueOf(dPosY);
+                    sOut[2] = String.valueOf(dPosZ);
+                    sOut[3] = String.valueOf(dVX);
+                    sOut[4] = String.valueOf(dVY);
+                    lsOut.add(sOut);
+                }
+                Writer oWrite = new Writer(sExportPath+System.getProperty("file.separator")+"LiqVelo"+time+".csv");
+                oWrite.writels(lsOut,";");
+                lsOut.clear();
+                for (Map.Entry<Circle, VelocityVec> m : dataBUB.results.entrySet()) {
+                    double dPosX = (m.getValue().getPosX() - refPX_X) * dResolution + refM_X;
+                    double dPosY = (m.getValue().getPosY() - refPX_Y) * dResolution + refM_Y;
+                    double dPosZ = refM_Z;
+                    double dVX = m.getValue().getX() * dResolution * fps;
+                    double dVY = -1.0*m.getValue().getY() * dResolution * fps;
+                    double majorAxis = Math.max(m.getKey().dDiameterI, m.getKey().dDiameterJ)*dResolution;
+                    double minorAxis = Math.min(m.getKey().dDiameterI, m.getKey().dDiameterJ)*dResolution;
+                    double orientaton = m.getKey().dAngle;
+                     String[] sOut = new String[9];
+                    sOut[0] = String.valueOf(dPosX);
+                    sOut[1] = String.valueOf(dPosY);
+                    sOut[2] = String.valueOf(dPosZ);
+                    sOut[3] = String.valueOf(dVX);
+                    sOut[4] = String.valueOf(dVY);
+                    sOut[5] = String.valueOf(majorAxis);
+                    sOut[6] = String.valueOf(minorAxis);
+                    sOut[7] = String.valueOf(orientaton);
+                    sOut[8] = String.valueOf(Math.pow(8*(majorAxis/2.0)*(majorAxis/2.0)*(minorAxis/2.0), 1.0/3.0));
+                    lsOut.add(sOut);
+                }
+                Writer oWrite2 = new Writer(sExportPath+System.getProperty("file.separator")+"BubVelo"+time+".csv");
+                oWrite2.writels(lsOut,";");
+                
             }
         } catch (Exception e) {
         }
@@ -272,9 +317,11 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
         this.loSettings.add(new SettingObject("Reference Pos Y [m]", "data_refposMY", 0.0, SettingObject.SettingsType.Double));
 //        this.loSettings.add(new SettingObject("Reference Pos Z [Px]", "data_refposPXZ", 0, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Reference Pos Z [m]", "data_refposMZ", 0.0, SettingObject.SettingsType.Double));
+        this.loSettings.add(new SettingObject("Resolution [micron/Px]", "data_Resolution", 10.0, SettingObject.SettingsType.Double));
         this.loSettings.add(new SettingObject("FPS", "data_FPS", 500, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Burst Frequency [Hz]", "data_BurstFreq", 5, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("CSV", "data_csvExport", false, SettingObject.SettingsType.Boolean));
+        this.loSettings.add(new SettingObject("Export Path", "data_csvExportPath", "Diretory", SettingObject.SettingsType.String));
     }
 
     @Override
@@ -285,13 +332,13 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
         lsClusters.add(sqlCluster);
         
         SettingsCluster csvExport = new SettingsCluster("CSV",
-                                                           new String[]{"data_csvExport"}, this);
+                                                           new String[]{"data_csvExport", "data_csvExportPath"}, this);
         csvExport.setDescription("CSV export");
         lsClusters.add(csvExport);
 
         SettingsCluster refPos = new SettingsCluster("Referennce Position",
                                                      new String[]{"data_refposPXX", "data_refposMX",
-                                                         "data_refposPXY", "data_refposMY", "data_refposMZ"}, this);
+                                                         "data_refposPXY", "data_refposMY", "data_refposMZ", "data_Resolution"}, this);
         refPos.setDescription("Specifies the reference position in the image");
         lsClusters.add(refPos);
 
