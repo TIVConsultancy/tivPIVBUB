@@ -34,7 +34,7 @@ public class tivPIVBUBSubControllerSQL extends tivPIVSubControllerSQL {
         super.connect(user, password, database, host);
         Settings hints = ((PIVBUBController) StaticReferences.controller).getHintsSettings();
         hints.removeSettings("sql_evalsettingsbub");
-        List<String> availSettingsBUB = getColumnEntries("piv", "evalsettingsbub", "ident");
+        List<String> availSettingsBUB = getColumnEntries("flowdata", "evalsettingsbub", "ident");
         for (String s : availSettingsBUB) {
             hints.addSettingsObject(new SettingObject("Settings BUB", "sql_evalsettingsbub", s, SettingObject.SettingsType.String));
         }
@@ -70,13 +70,13 @@ public class tivPIVBUBSubControllerSQL extends tivPIVSubControllerSQL {
     }
 
     public String getinsertEntryBUB(sqlEntryBUB e) {
-        String sqlStatement = "INSERT INTO piv.bubvelo (experiment, timestampexp, posx, posy, posz, velox, veloy) "
+        String sqlStatement = "INSERT INTO flowdata.bubvelo (experiment, timestampexp, posx, posy, posz, velox, veloy) "
                 + "VALUES('" + e.experiment + "', '" + e.settingsName + "', " + t + ", " + e.posX + ", " + e.posY + ", " + e.posZ + ", " + e.vX + ", " + e.vY + e.majorAxis + ", " + e.minorAxis + ", " + e.orientation + ")";
         return sqlStatement;
     }
 
     public String getupserEntryBUB(sqlEntryBUB e) {
-        String sqlStatement = "INSERT INTO piv.bubvelo (experiment, settings, timestampexp, posx, posy, posz, velox, veloy, majoraxis, minoraxis, orientation) "
+        String sqlStatement = "INSERT INTO flowdata.bubvelo (experiment, settings, timestampexp, posx, posy, posz, velox, veloy, majoraxis, minoraxis, orientation) "
                 + "VALUES('" + e.experiment + "', '" + e.settingsName + "', " + t + ", " + e.posX + ", " + e.posY + ", " + e.posZ + ", " + e.vX + ", " + e.vY + ", " + e.majorAxis + ", " + e.minorAxis + ", " + e.orientation + ")"
                 + "ON CONFLICT (experiment, settings, timestampexp, posx, posy, posz) DO UPDATE SET "
                 + "experiment = EXCLUDED.experiment, "
