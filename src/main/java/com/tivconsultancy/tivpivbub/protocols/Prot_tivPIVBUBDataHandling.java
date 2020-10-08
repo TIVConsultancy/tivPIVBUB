@@ -163,8 +163,8 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                     double dPosX = (v.getPosX() - refPX_X) * dResolution + refM_X;
                     double dPosY = (v.getPosY() - refPX_Y) * dResolution + refM_Y;
                     double dPosZ = refM_Z;
-                    double dVX = v.getX() * dResolution;
-                    double dVY = -1.0*v.getY() * dResolution;
+                    double dVX = v.getX() * dResolution*fps;
+                    double dVY = -1.0*v.getY() * dResolution*fps;
                     String[] sOut = new String[5];
                     sOut[0] = String.valueOf(dPosX);
                     sOut[1] = String.valueOf(dPosY);
@@ -173,6 +173,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                     sOut[4] = String.valueOf(dVY);
                     lsOut.add(sOut);
                 }
+                lsOut.add(0,new String[]{"posx","posy","velox","veloy"});
                 Writer oWrite = new Writer(sExportPath+System.getProperty("file.separator")+"LiqVelo"+time+".csv");
                 oWrite.writels(lsOut,";");
                 lsOut.clear();
@@ -197,6 +198,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                     sOut[8] = String.valueOf(Math.pow(8*(majorAxis/2.0)*(majorAxis/2.0)*(minorAxis/2.0), 1.0/3.0));
                     lsOut.add(sOut);
                 }
+                lsOut.add(0,new String[]{"posx","posy","velox","veloy","major","minor","orientation","Diameter"});
                 Writer oWrite2 = new Writer(sExportPath+System.getProperty("file.separator")+"BubVelo"+time+".csv");
                 oWrite2.writels(lsOut,";");
                 
