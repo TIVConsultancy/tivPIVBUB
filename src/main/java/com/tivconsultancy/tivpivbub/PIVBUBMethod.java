@@ -19,6 +19,9 @@ import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBBoundaryTracking;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBDataHandling;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBEdges;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBMergeShapeBoundTrack;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import javax.imageio.ImageIO;
 
 /**
  *
@@ -49,8 +52,9 @@ public class PIVBUBMethod extends PIVMethod {
             getProtocol("read").run(new Object[]{imageFile1, imageFile2});
             getProtocol("preproc").run(getProtocol("read").getResults());
             Object[] prepr = getProtocol("preproc").getResults();
-            getProtocol("AIRead").run(new Object[]{prepr[0], imageFile1, imageFile2});
-            getProtocol("mask").run(new Object[]{prepr[0], prepr[1], getProtocol("AIRead").getResults()[0], getProtocol("AIRead").getResults()[1]});
+//            getProtocol("AIRead").run(new Object[]{prepr[0], imageFile1, imageFile2});
+//            getProtocol("mask").run(new Object[]{prepr[0], prepr[1], getProtocol("AIRead").getResults()[0], getProtocol("AIRead").getResults()[1]});
+            getProtocol("mask").run(new Object[]{prepr[0], prepr[1], imageFile1, imageFile2,prepr[2]});
             PIVStaticReferences.calcIntensityValues(((PIVController) StaticReferences.controller).getDataPIV());
             getProtocol("inter areas").run();
             getProtocol("calculate").run();
@@ -61,14 +65,14 @@ public class PIVBUBMethod extends PIVMethod {
             ImageInt imgInput2 = ((ImageInt) getProtocol("preproc").getResults()[1]).clone();
             imgInput2.iaPixels = getThinEdge(imgInput2.iaPixels, Boolean.FALSE, null, null, 0);
             getProtocol("AIPost").run(new Object[]{getProtocol("preproc").getResults()[0],
-                getProtocol("AIRead").getResults()[0],
-                getProtocol("AIRead").getResults()[2],
+                getProtocol("mask").getResults()[1],
+                getProtocol("mask").getResults()[3],
                 imgInput,
                 getProtocol("preproc").getResults()[1],
-                getProtocol("AIRead").getResults()[1],
-                getProtocol("AIRead").getResults()[3],
-                 imgInput2});
-
+                getProtocol("mask").getResults()[2],
+                getProtocol("mask").getResults()[4],
+                imgInput2});
+//            ImageIO.write((BufferedImage) getProtocol("AIPost").getResults()[0], "jpeg", new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\Res" + imageFile1.getName()));
 //            getProtocol("edgedetect").run();
 //            getProtocol("boundtrack").run();
             getProtocol("result").run();

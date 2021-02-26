@@ -84,8 +84,10 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
         DataPIV dataPIV = ((PIVBUBController) StaticReferences.controller).getDataPIV();
         DataBUB dataBUB = ((PIVBUBController) StaticReferences.controller).getDataBUB();
 
-//        String expName = getSettingsValue("sql_experimentident").toString();
         String expName = ((PIVMethod) StaticReferences.controller.getCurrentMethod()).experimentSQL;
+        if (expName == null) {
+            expName = getSettingsValue("sql_experimentident").toString();
+        }
         System.out.println("Uploading Data to " + expName);
         String settingsPIVNamePIV = getSettingsValue("sql_evalsettingspiv").toString();
         String settingsPIVNameBUB = getSettingsValue("sql_evalsettingsbub").toString();
@@ -114,7 +116,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                     double dPosZ = refM_Z;
                     double dVX = v.getX() * dResolution * fps;
                     double dVY = -1.0 * v.getY() * dResolution * fps;
-                    entriesPIV.add(new sqlEntryPIV(expName, settingsPIVNamePIV, dPosX, dPosY, dPosZ, dVX, dVY,iBurstNumber));
+                    entriesPIV.add(new sqlEntryPIV(expName, settingsPIVNamePIV, dPosX, dPosY, dPosZ, dVX, dVY, iBurstNumber));
                 }
                 if (bUPSERT) {
                     sql_Control.upsertEntry(entriesPIV);
@@ -133,7 +135,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                     double minorAxis = Math.min(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
                     double orientaton = m.getKey().dAngle;
                     int AverageGreyDeri = (int) (double) m.getKey().dAvergeGreyDerivative;
-                    entriesBUB.add(new sqlEntryBUB(expName, settingsPIVNameBUB, dPosX, dPosY, dPosZ, dVX, dVY, majorAxis, minorAxis, orientaton, AverageGreyDeri,iBurstNumber));
+                    entriesBUB.add(new sqlEntryBUB(expName, settingsPIVNameBUB, dPosX, dPosY, dPosZ, dVX, dVY, majorAxis, minorAxis, orientaton, AverageGreyDeri, iBurstNumber));
                 }
                 if (bUPSERT) {
                     sql_Control.upsertEntryBUB(entriesBUB);
@@ -166,24 +168,29 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                 for (Vector v : dataPIV.oGrid.getVectors()) {
                     double dPosX = (v.getPosX() - refPX_X) * dResolution + refM_X;
                     double dPosY = (v.getPosY() - refPX_Y) * dResolution + refM_Y;
+                    double dPosYPx = v.getPosY();
+                    double dPosXPx = v.getPosX();
                     double dPosZ = refM_Z;
                     double dVX = v.getX() * dResolution * fps;
                     double dVY = -1.0 * v.getY() * dResolution * fps;
-                    String[] sOut = new String[5];
+                    String[] sOut = new String[7];
                     sOut[0] = String.valueOf(dPosX);
                     sOut[1] = String.valueOf(dPosY);
                     sOut[2] = String.valueOf(dPosZ);
                     sOut[3] = String.valueOf(dVX);
                     sOut[4] = String.valueOf(dVY);
+                    sOut[5] = String.valueOf(dPosXPx);
+                    sOut[6] = String.valueOf(dPosYPx);
                     lsOut.add(sOut);
                 }
-                lsOut.add(0, new String[]{"posx", "posy", "velox", "veloy"});
+                lsOut.add(0, new String[]{"posx", "posy", "velox", "veloy","posxPx","posyPx"});
                 Writer oWrite = new Writer(sExportPath + System.getProperty("file.separator") + "LiqVelo" + time + ".csv");
                 oWrite.writels(lsOut, ";");
                 lsOut.clear();
                 for (Map.Entry<Circle, VelocityVec> m : dataBUB.results.entrySet()) {
                     double dPosX = (m.getValue().getPosX() - refPX_X) * dResolution + refM_X;
                     double dPosY = (m.getValue().getPosY() - refPX_Y) * dResolution + refM_Y;
+
                     double dPosZ = refM_Z;
                     double dVX = m.getValue().getX() * dResolution * fps;
                     double dVY = -1.0 * m.getValue().getY() * dResolution * fps;
@@ -283,12 +290,12 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
         return oOutputGrid;
 
     }
-    
-    private int getBurstNumber(){
+
+    private int getBurstNumber() {
         int index = ((PIVController) StaticReferences.controller).getSelecedIndex();
         DataPIV data = ((PIVController) StaticReferences.controller).getDataPIV();
         if (data.iBurstLength > 1) {
-            return (index/data.iBurstLength); 
+            return (index / data.iBurstLength);
         } else {
             return 0;
         }
@@ -304,7 +311,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
             double dRestTime = (index - (((int) (index / data.iBurstLength)) * data.iBurstLength)) * (1.0 / fps);
             System.out.println("Burst Time" + dBurstTime);
             System.out.println("Rest Time" + dRestTime);
-            System.out.println("Burst Number "+getBurstNumber());
+            System.out.println("Burst Number " + getBurstNumber());
             return dBurstTime + dRestTime;
         } else {
             return index * (1.0 / fps);

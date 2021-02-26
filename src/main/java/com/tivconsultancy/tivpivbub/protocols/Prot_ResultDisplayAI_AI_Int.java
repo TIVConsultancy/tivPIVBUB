@@ -170,7 +170,13 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
             ImageInt mask = (ImageInt) input[1];
             ImageInt oInnerEdges = (ImageInt) input[2];
             ImageInt grad = (ImageInt) input[3];
-
+//        try {
+//            IMG_Writer.PaintGreyPNG(mask, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\mask.jpeg"));
+//            IMG_Writer.PaintGreyPNG(oInnerEdges, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\oInnerEdges.jpeg"));
+//            IMG_Writer.PaintGreyPNG(blackboard, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\blackboard.jpeg"));
+//        } catch (IOException ex) {
+//            Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
+//        }
             ImageInt OuterBounds = mask.clone();
 
             List<CPX> lCPX1 = PredictSingle(blackboard, mask, oInnerEdges, grad, OuterBounds, true);
@@ -391,7 +397,7 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
     public static List<CPX> PredictSingle(ImageInt blackboard, ImageInt mask, ImageInt oInnerEdges, ImageInt grad, ImageInt OuterBounds, boolean bSetToRes) {
 //        Morphology.erosion(oInnerEdges);
 //        Morphology.dilatation(oInnerEdges);
-        //Morphology.dilatation(oInnerEdges);
+//        Morphology.dilatation(oInnerEdges);
         ImageGrid oGrid = new ImageGrid(OuterBounds.iaPixels);
 
         List<ArbStructure2> ls = PreMarked.getAreasBlackOnWhite(OuterBounds);
@@ -620,8 +626,9 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         if (innerEdges.size() > 0) {
             //***Mark outer ends
             for (int i = 0; i < lsHelp.size(); i++) {
-
+//                System.out.println("Before "+lsHelp.get(i).loPoints.size());
                 Ziegenhein_2018.thinoutEdges(oIntThin, lsHelp.get(i));
+//                System.out.println("After "+lsHelp.get(i).loPoints.size());
                 setEnds(oIntThin, oOuterEdges, lsHelp.get(i), 175);
                 for (MatrixEntry me : lsHelp.get(i).loPoints) {
                     if (oIntThin.iaPixels[me.i][me.j] == 175) {
@@ -711,33 +718,60 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
             //**********************************
 
             ImageInt OverlappCircs = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 255);
+//            boolean bDesired = false;
             for (MatrixEntry me : ASArea.loPoints) {
+//                if (me.equals(new MatrixEntry(175, 1637))) {
+//                    bDesired = true;
+//                }
                 if (oInnerEdges.iaPixels[me.i][me.j] == 0) {
                     OverlappCircs.setPoint(me, 0);
                 }
             }
-//            try {
-//                IMG_Writer.PaintGreyPNG(OverlappCircs, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\OverlappCircsBefore.jpeg"));
-//                IMG_Writer.PaintGreyPNG(oInnerEdges, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\oInnerEdges.jpeg"));
-//                IMG_Writer.PaintGreyPNG(oOuterEdges, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\oOuterEdges.jpeg"));
-//            } catch (IOException ex) {
-//                Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
-//            }
+
+            ImageInt OverlappCircs2 = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 0);
             List<List<MatrixEntry>> llmeBounds = new ArrayList<>();
+            int iCounter = 254;
             for (MatrixEntry me : ASArea.loPoints) {
                 if (OverlappCircs.iaPixels[me.i][me.j] == 0) {
                     ArbStructure2 as = new ArbStructure2((ArrayList) new Morphology().markFillN8(OverlappCircs, me.i, me.j));
                     List<MatrixEntry> meBound = new ArrayList<>();
                     for (MatrixEntry loPoint : as.loPoints) {
                         if (oOuterEdges.iaPixels[loPoint.i][loPoint.j] == 255) {
+                            loPoint.dValue = iCounter;
                             meBound.add(loPoint);
                         }
                     }
-                    llmeBounds.add(meBound);
+                    if (meBound.size() > 0) {
+                        llmeBounds.add(meBound);
+                    }
                     OverlappCircs.setPoints(as.loPoints, 255);
+                    OverlappCircs2.setPoints(as.loPoints, iCounter);
+                    iCounter -= 10;
                 }
             }
-
+//            if (bDesired){
+//                        try {
+//                    IMG_Writer.PaintGreyPNG(OverlappCircs2, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\OverlappCircs2.jpeg"));
+//
+//                } catch (IOException ex) {
+//                    Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
+//                }
+//            }
+            ImageInt oInnerClone = oInnerEdges.clone();
+            for (ArbStructure2 innerEdge : innerEdges) {
+                MatrixEntry me = getMeanEntry(innerEdge.loPoints);
+                int iValue = OverlappCircs2.getValue(me);
+                if (iValue != 0) {
+                    Ziegenhein_2018.thinoutEdges(oInnerClone, innerEdge);
+                    for (int i = 0; i < llmeBounds.size(); i++) {
+                        if (llmeBounds.get(i).get(0).dValue == (double) iValue) {
+//                            System.out.println("Before " + llmeBounds.get(i).size());
+                            llmeBounds.get(i).addAll(innerEdge.loPoints);
+//                            System.out.println("After " + llmeBounds.get(i).size());
+                        }
+                    }
+                }
+            }
 //            System.out.println("Number of IE " + innerEdges.size());
 //            System.out.println("Number of Bounds " + llmeBounds.size());
             if (llmeBounds.size() > 1) {
