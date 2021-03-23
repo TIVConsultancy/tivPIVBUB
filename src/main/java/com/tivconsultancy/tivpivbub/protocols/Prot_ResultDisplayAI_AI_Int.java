@@ -662,6 +662,7 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
             ImageInt OverlappCircs2 = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 0);
             ImageInt Org = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 0);
             List<List<MatrixEntry>> llmeBounds = new ArrayList<>();
+            List<List<MatrixEntry>> llmeArea = new ArrayList<>();
             int iCounter = 254;
             for (MatrixEntry me : ASArea.loPoints) {
                 Org.setPoint(me, blackboard.iaPixels[me.i][me.j]);
@@ -676,17 +677,36 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                             }
                         }
                         if (meBound.size() > 0) {
+                                Circle cc = EllipseDetection.EllipseFit(meBound);
+                                 if (cc != null) {
+                                double iArea = cc.dDiameterI / 2.0 * cc.dDiameterJ / 2.0 * Math.PI;
+                                OverlappCircs2.setPoints(as.loPoints, iCounter);
+                                if ((int) iArea < as.loPoints.size()) {
+                                    for (ArbStructure2 innerEdge : innerEdges) {
+                                        meBound.addAll(getBorderEntries(innerEdge.loPoints, OverlappCircs2, iCounter));
+                                    }
+                                }
+                            }
+
                             llmeBounds.add(meBound);
                         }
                         OverlappCircs.setPoints(as.loPoints, 255);
-                        OverlappCircs2.setPoints(as.loPoints, iCounter);
+//                        OverlappCircs2.setPoints(as.loPoints, iCounter);
                         iCounter -= 50;
                     }
                 }
             }
             //*********Find Curv direction of innerbound and add all connected to region from OverlappCircs2
             if (bDesired) {
-
+                for (int i = 0; i < llmeBounds.size(); i++) {
+                    Circle cc = EllipseDetection.EllipseFit(llmeBounds.get(i));
+                    Org.setPoints(cc.lmeCircle, 255);
+                }
+                try {
+                    IMG_Writer.PaintGreyPNG(Org, new File("C:\\Users\\Nutzer\\Desktop\\owncloudHZDR\\Work\\TianBIT\\BubbleDetec\\tests\\Org.jpeg"));
+                } catch (IOException ex) {
+                    Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
+                }
 //                for (int j = 5; j < 36; j += 5) {
 //                    ImageInt oBorderPixels = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 0);
 //                    ImageInt oInnerClone = oInnerEdges.clone();
@@ -721,21 +741,21 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
 //                oBorderPixels.setPoints(lmeBord, iValue);
             }
 
-
-            for (ArbStructure2 innerEdge : innerEdges) {
-                MatrixEntry me = getMeanEntry(innerEdge.loPoints);
-                int iValue = OverlappCircs2.getValue(me);
-                if (iValue != 0) {
-//                    Ziegenhein_2018.thinoutEdges(oInnerClone, innerEdge);
-                    for (int i = 0; i < llmeBounds.size(); i++) {
-                        if (llmeBounds.get(i).get(0).dValue == (double) iValue) {
-
-                            llmeBounds.get(i).addAll(getBorderEntries(innerEdge.loPoints, OverlappCircs2, iValue));
-
-                        }
-                    }
-                }
-            }
+//            for (ArbStructure2 innerEdge : innerEdges) {
+//                MatrixEntry me = getMeanEntry(innerEdge.loPoints);
+//                int iValue = OverlappCircs2.getValue(me);
+//                if (iValue != 0) {
+//                    for (int i = 0; i < llmeBounds.size(); i++) {
+//                        if (llmeBounds.get(i).get(0).dValue == (double) iValue) {
+//                            Circle cc = EllipseDetection.EllipseFit(llmeBounds.get(i));
+//                            List<MatrixEntry> lmeCirc = cc.getAreaCircle();
+//                            
+////                            llmeBounds.get(i).addAll(getBorderEntries(innerEdge.loPoints, OverlappCircs2, iValue));
+//
+//                        }
+//                    }
+//                }
+//            }
             if (llmeBounds.size() > 1) {
                 for (List<MatrixEntry> meBound : llmeBounds) {
                     if (meBound.size() > 3) {
