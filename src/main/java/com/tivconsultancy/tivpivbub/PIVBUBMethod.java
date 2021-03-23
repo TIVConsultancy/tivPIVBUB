@@ -14,7 +14,6 @@ import com.tivconsultancy.tivpiv.PIVController;
 import com.tivconsultancy.tivpiv.PIVMethod;
 import com.tivconsultancy.tivpiv.PIVStaticReferences;
 import com.tivconsultancy.tivpivbub.protocols.Prot_ResultDisplayAI_AI_Int;
-import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVAIPredictions;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBBoundaryTracking;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBDataHandling;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBEdges;
@@ -38,7 +37,6 @@ public class PIVBUBMethod extends PIVMethod {
         methods.add(new NameObject<>("edgedetect", new Prot_tivPIVBUBEdges()), methods.getSize() - 1);
         methods.add(new NameObject<>("boundtrack", new Prot_tivPIVBUBBoundaryTracking()), methods.getSize() - 1);
         methods.add(new NameObject<>("result", new Prot_tivPIVBUBMergeShapeBoundTrack()), methods.getSize() - 1);
-        methods.add(new NameObject<>("AIRead", new Prot_tivPIVAIPredictions()), methods.getSize() - 1);
         methods.remove("data");
         methods.add(new NameObject<>("data", new Prot_tivPIVBUBDataHandling()), methods.getSize() - 1);
         methods.add(new NameObject<>("AIPost", new Prot_ResultDisplayAI_AI_Int()), methods.getSize() - 1);
@@ -52,14 +50,13 @@ public class PIVBUBMethod extends PIVMethod {
             getProtocol("read").run(new Object[]{imageFile1, imageFile2});
             getProtocol("preproc").run(getProtocol("read").getResults());
             Object[] prepr = getProtocol("preproc").getResults();
-//            getProtocol("AIRead").run(new Object[]{prepr[0], imageFile1, imageFile2});
-//            getProtocol("mask").run(new Object[]{prepr[0], prepr[1], getProtocol("AIRead").getResults()[0], getProtocol("AIRead").getResults()[1]});
-            getProtocol("mask").run(new Object[]{prepr[0], prepr[1], imageFile1, imageFile2,prepr[2]});
+            getProtocol("mask").run(new Object[]{prepr[0], prepr[1], imageFile1, imageFile2, prepr[2]});
             PIVStaticReferences.calcIntensityValues(((PIVController) StaticReferences.controller).getDataPIV());
-            getProtocol("inter areas").run();
-            getProtocol("calculate").run();
-            getProtocol("display").run();
-
+            if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
+                getProtocol("inter areas").run();
+                getProtocol("calculate").run();
+                getProtocol("display").run();
+            }
             ImageInt imgInput = ((ImageInt) getProtocol("preproc").getResults()[0]).clone();
             imgInput.iaPixels = getThinEdge(imgInput.iaPixels, Boolean.FALSE, null, null, 0);
             ImageInt imgInput2 = ((ImageInt) getProtocol("preproc").getResults()[1]).clone();
@@ -72,11 +69,11 @@ public class PIVBUBMethod extends PIVMethod {
                 getProtocol("mask").getResults()[2],
                 getProtocol("mask").getResults()[4],
                 imgInput2});
-//            ImageIO.write((BufferedImage) getProtocol("AIPost").getResults()[0], "jpeg", new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\Res" + imageFile1.getName()));
-//            getProtocol("edgedetect").run();
-//            getProtocol("boundtrack").run();
-            getProtocol("result").run();
-            getProtocol("data").run();
+
+            if ((boolean) getProtocol("boundtrack").getSettingsValue("BoundTrack")) {
+                getProtocol("result").run();
+                getProtocol("data").run();
+            }
 
             for (NameSpaceProtocolResults1D e : getProtocol("data").get1DResultsNames()) {
                 StaticReferences.controller.get1DResults().setResult(e.toString(), getProtocol("data").getOverTimesResult(e));

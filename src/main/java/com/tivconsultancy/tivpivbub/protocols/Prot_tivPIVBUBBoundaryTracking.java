@@ -93,17 +93,17 @@ public class Prot_tivPIVBUBBoundaryTracking extends Protocol {
     public void run(Object... input) throws UnableToRunException {
 
         PIVBUBController control = ((PIVBUBController) StaticReferences.controller);
-        
+
         edgesB1 = OpenTIV_Edges.performEdgeDetecting(this, new ImageInt(control.getDataPIV().iaReadInFirst));
         edgesB1 = OpenTIV_Edges.performEdgeOperations(this, edgesB1, new ImageInt(control.getDataPIV().iaReadInFirst));
         int iFirstThreshold = Integer.valueOf(this.getSettingsValue("OuterEdgesThreshold").toString());
         int iSecondThreshold = Integer.valueOf(this.getSettingsValue("OuterEdgesThresholdSecond").toString());
         this.setSettingsValue("OuterEdgesThreshold", iSecondThreshold);
-        edgesB2 = OpenTIV_Edges.performEdgeDetecting(this, new ImageInt(control.getDataPIV().iaReadInSecond)); 
+        edgesB2 = OpenTIV_Edges.performEdgeDetecting(this, new ImageInt(control.getDataPIV().iaReadInSecond));
         this.setSettingsValue("OuterEdgesThreshold", iFirstThreshold);
-        
+
         try {
-            control.getDataBUB().results_BT = BoundTrackZiegenhein_2018.runBoundTrack(this,  new ImageGrid(edgesB1.iaPixels), new ImageGrid(edgesB2.iaPixels));
+            control.getDataBUB().results_BT = BoundTrackZiegenhein_2018.runBoundTrack(this, new ImageGrid(edgesB1.iaPixels), new ImageGrid(edgesB2.iaPixels));
             this.contours1 = control.getDataBUB().results_BT.contours1;
             this.contours2 = control.getDataBUB().results_BT.contours2;
             List<VelocityVec> vecs = new ArrayList<>(control.getDataBUB().results_BT.velocityVectors.values());
@@ -135,11 +135,11 @@ public class Prot_tivPIVBUBBoundaryTracking extends Protocol {
     public EnumObject getMaxVecLength(List<VelocityVec> oVeloVecs) throws EmptySetException {
         EnumObject o = Sorting.getMaxCharacteristic(oVeloVecs, new Sorting.Characteristic() {
 
-                                                @Override
-                                                public Double getCharacteristicValue(Object pParameter) {
-                                                    return ((VelocityVec) pParameter).opUnitTangent.dValue;
-                                                }
-                                            });
+            @Override
+            public Double getCharacteristicValue(Object pParameter) {
+                return ((VelocityVec) pParameter).opUnitTangent.dValue;
+            }
+        });
         return o;
     }
 
@@ -231,37 +231,37 @@ public class Prot_tivPIVBUBBoundaryTracking extends Protocol {
         this.loSettings.add(new SettingObject("MinSize", "MinSize", 30, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Filter Large Edges", "SortOutLargeEdges", false, SettingObject.SettingsType.Boolean));
         this.loSettings.add(new SettingObject("MaxSize", "MaxSize", 1000, SettingObject.SettingsType.Integer));
-        
+
         //Curv processing
         this.loSettings.add(new SettingObject("Curvature Order", "iCurvOrder", 5, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Tang Order", "iTangOrder", 10, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Curvature Threshold", "dCurvThresh", 0.075, SettingObject.SettingsType.Double));
         this.loSettings.add(new SettingObject("Colorbar", "tivBUBColBar", "ColdToWarmRainbow2", SettingObject.SettingsType.String));
-        
+
         //Tracking
         this.loSettings.add(new SettingObject("Search Radius Y Max", "BUBSRadiusYPlus", 20, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Search Radius Y Min", "BUBSRadiusYMinus", 5, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Search Radius X Max", "BUBSRadiusXPlus", 20, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Search Radius X Min", "BUBSRadiusXMinus", -20, SettingObject.SettingsType.Integer));
-        
-        
+        this.loSettings.add(new SettingObject("Boundary Tracking", "BoundTrack", false, SettingObject.SettingsType.Boolean));
+
     }
 
     @Override
     public void buildClusters() {
-        
+
         SettingsCluster edgeDetect = new SettingsCluster("BT: Edges",
-                                                         new String[]{"OuterEdgesThreshold", "OuterEdgesThresholdSecond", "SortOutSmallEdges", "MinSize"}, this);
+                new String[]{"OuterEdgesThreshold", "OuterEdgesThresholdSecond", "SortOutSmallEdges", "MinSize"}, this);
         edgeDetect.setDescription("Boundary Tracking");
         lsClusters.add(edgeDetect);
-        
+
         SettingsCluster boundSplit = new SettingsCluster("Contour Splitting",
-                                                         new String[]{"iCurvOrder", "iTangOrder", "dCurvThresh"}, this);
+                new String[]{"iCurvOrder", "iTangOrder", "dCurvThresh"}, this);
         boundSplit.setDescription("Contour Splitting");
         lsClusters.add(boundSplit);
-        
+
         SettingsCluster boundTrack = new SettingsCluster("Boundary Tracking",
-                                                         new String[]{"BUBSRadiusYPlus", "BUBSRadiusYMinus", "BUBSRadiusXPlus", "BUBSRadiusXMinus", "tivBUBColBar"}, this);
+                new String[]{"BUBSRadiusYPlus", "BUBSRadiusYMinus", "BUBSRadiusXPlus", "BUBSRadiusXMinus", "tivBUBColBar", "BoundTrack"}, this);
         boundTrack.setDescription("Boundary Tracking");
         lsClusters.add(boundTrack);
 

@@ -88,7 +88,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
         if (expName == null) {
             expName = getSettingsValue("sql_experimentident").toString();
         }
-        System.out.println("Uploading Data to " + expName);
+
         String settingsPIVNamePIV = getSettingsValue("sql_evalsettingspiv").toString();
         String settingsPIVNameBUB = getSettingsValue("sql_evalsettingsbub").toString();
 
@@ -107,6 +107,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
 
         try {
             if (Boolean.valueOf(this.getSettingsValue("sql_activation").toString())) {
+                        System.out.println("Uploading Data to " + expName);
 //                dResolution = sql_Control.getResolution(expName) / 1000000.0;
 //                double dResolution = sql_Control.getResolution(expName) / 100000.0;
                 List<sqlEntryPIV> entriesPIV = new ArrayList<>();
@@ -183,7 +184,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                     sOut[6] = String.valueOf(dPosYPx);
                     lsOut.add(sOut);
                 }
-                lsOut.add(0, new String[]{"posx", "posy", "velox", "veloy","posxPx","posyPx"});
+                lsOut.add(0, new String[]{"posx", "posy", "velox", "veloy", "posxPx", "posyPx"});
                 Writer oWrite = new Writer(sExportPath + System.getProperty("file.separator") + "LiqVelo" + time + ".csv");
                 oWrite.writels(lsOut, ";");
                 lsOut.clear();
@@ -216,8 +217,10 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
             }
         } catch (Exception e) {
         }
-
-        run1DResults(dResolution, fps);
+        PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
+        if ((boolean) controller.getCurrentMethod().getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
+            run1DResults(dResolution, fps);
+        }
     }
 
     public void run1DResults(double resolution, double fps) {

@@ -112,6 +112,7 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
     ImageGrid oEdges2;
     transient BufferedImage imgResult;
     private String name = "Result AI";
+    private String nameMask = "Mask AI";
     transient protected LookUp<BufferedImage> outPutImages;
 
     public Prot_ResultDisplayAI_AI_Int(String name) {
@@ -134,6 +135,9 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
     private void buildLookUp() {
         outPutImages = new LookUp<>();
         outPutImages.add(new NameObject<>(name, imgResult));
+        outPutImages.add(new NameObject<>(nameMask, oEdges1.getBuffImage()));
+//        ((PIVBUBController) StaticReferences.controller).getDataBUB().setImage(name, imgResult);
+//        ((PIVBUBController) StaticReferences.controller).getDataBUB().setImage(nameMask, oEdges1.getBuffImage());
     }
 
     @Override
@@ -143,12 +147,17 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
 
     @Override
     public List<String> getIdentForViews() {
-        return Arrays.asList(new String[]{name});
+        return Arrays.asList(new String[]{name, nameMask});
     }
 
     @Override
     public BufferedImage getView(String identFromViewer) {
         return outPutImages.get(identFromViewer);
+//        BufferedImage img = ((PIVBUBController) StaticReferences.controller).getDataBUB().getImage(identFromViewer);
+//        if (img == null) {
+//            img = (new ImageInt(50, 50, 0)).getBuffImage();
+//        }
+//        return img;
     }
 
     @Override
@@ -170,6 +179,8 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
             ImageInt mask = (ImageInt) input[1];
             ImageInt oInnerEdges = (ImageInt) input[2];
             ImageInt grad = (ImageInt) input[3];
+            ImageInt oInnerClone = oInnerEdges.clone();
+
 //        try {
 //            IMG_Writer.PaintGreyPNG(mask, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\mask.jpeg"));
 //            IMG_Writer.PaintGreyPNG(oInnerEdges, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\oInnerEdges.jpeg"));
@@ -178,20 +189,16 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
 //            Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
 //        }
             ImageInt OuterBounds = mask.clone();
+            ImageGrid oEdges = new ImageGrid(blackboard.iaPixels.length, blackboard.iaPixels[0].length);
 
             List<CPX> lCPX1 = PredictSingle(blackboard, mask, oInnerEdges, grad, OuterBounds, true);
 
-            ImageGrid oEdges = new ImageGrid(blackboard.iaPixels.length, blackboard.iaPixels[0].length);
-
-            for (CPX cpx : lCPX1) {
-
-                oEdges.addPoint(cpx.lo, 255);
-//                for (ImagePoint ip : cpx.lo) {
-//                    MatrixEntry me = ip.getME();
-//                    EllipsFitRast.setPixel(me.j, me.i, new int[]{red.getRed(), red.getGreen(), red.getBlue(), 127});
+//            for (CPX cpx : lCPX1) {
 //
-//                }
-            }
+//                oEdges.addPoint(cpx.lo, 255);
+//
+//            }
+            oEdges.setData(new ImageGrid(oInnerEdges.iaPixels).getData());
             oEdges1 = oEdges.clone();
             controller.getDataBUB().iaEdgesFirst = oEdges.getMatrix();
             HashSet<ImagePoint> loStarts = Ziegenhein_2018.getStart(oEdges);
@@ -217,10 +224,19 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                 BufferedImage EllipsFitARGB = (new BufferedImage(blackboard.getBuffImage().getWidth(), blackboard.getBuffImage().getHeight(), BufferedImage.TYPE_INT_ARGB));
                 WritableRaster EllipsFitRast = EllipsFitARGB.getRaster();
                 Color blue = Color.BLUE;
+                Color red = Color.RED;
+                Color yellow = Color.YELLOW;
                 for (int i = 0; i < blackboard.iaPixels.length; i++) {
                     for (int j = 0; j < blackboard.iaPixels[0].length; j++) {
                         int val = blackboard.iaPixels[i][j];
                         EllipsFitRast.setPixel(j, i, new int[]{val, val, val, 255});
+//                        if (oInnerClone.iaPixels[i][j] > 0) {
+                        if (oInnerEdges.iaPixels[i][j] > 0) {
+                            EllipsFitRast.setPixel(j, i, new int[]{red.getRed(), red.getGreen(), red.getBlue(), 127});
+                        }
+                        if (oInnerEdges.iaPixels[i][j] > 0 && oInnerClone.iaPixels[i][j] == 0) {
+                            EllipsFitRast.setPixel(j, i, new int[]{yellow.getRed(), yellow.getGreen(), yellow.getBlue(), 127});
+                        }
                     }
                 }
 
@@ -240,164 +256,152 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                 imgResult = newResult;
             }
         }
-        if (input != null && input.length > 4 && input[4] != null && input[5] != null
-                && input[6] != null && input[4] instanceof ImageInt && input[5] instanceof ImageInt
-                && input[6] instanceof ImageInt) {
-            ImageInt blackboard = ((ImageInt) input[4]).clone();
-            ImageInt mask = (ImageInt) input[5];
-            ImageInt oInnerEdges = (ImageInt) input[6];
-            ImageInt grad = (ImageInt) input[7];
-            ImageInt OuterBounds = mask.clone();
 
-            List<CPX> lCPX2 = PredictSingle(blackboard, mask, oInnerEdges, grad, OuterBounds, false);
-//            BufferedImage EllipsFitARGB
-//                    = (new BufferedImage(blackboard.getBuffImage().getWidth(), blackboard.getBuffImage().getHeight(), BufferedImage.TYPE_INT_ARGB));
-//            System.out.println(lCPXTr2.size());
-//            WritableRaster EllipsFitRast = EllipsFitARGB.getRaster();
-            ImageGrid oEdges = new ImageGrid(blackboard.iaPixels.length, blackboard.iaPixels[0].length);
-//            Color red = Color.RED;
-//            Color blue = Color.BLUE;
-//            Color yellow = Color.YELLOW;
-////            for (int i = 0; i < blackboard.iaPixels.length; i++) {
-//                for (int j = 0; j < blackboard.iaPixels[0].length; j++) {
-//                    int val = blackboard.iaPixels[i][j];
-//                    EllipsFitRast.setPixel(j, i, new int[]{val, val, val, 255});
-//                }
-//            }
+        if ((boolean) controller.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("BoundTrack")) {
+            if (input != null && input.length > 4 && input[4] != null && input[5] != null
+                    && input[6] != null && input[4] instanceof ImageInt && input[5] instanceof ImageInt
+                    && input[6] instanceof ImageInt) {
+                ImageInt blackboard = ((ImageInt) input[4]).clone();
+                ImageInt mask = (ImageInt) input[5];
+                ImageInt oInnerEdges = (ImageInt) input[6];
+                ImageInt grad = (ImageInt) input[7];
+                ImageInt OuterBounds = mask.clone();
 
-//            for (CPX cpx : lCPXTr1) {
-//                for (ImagePoint ip : cpx.lo) {
-//                    MatrixEntry me = ip.getME();
-//                    EllipsFitRast.setPixel(me.j, me.i, new int[]{red.getRed(), red.getGreen(), red.getBlue(), 180});
-//                }
-//            }
-            for (CPX cpx : lCPX2) {
-                oEdges.addPoint(cpx.lo, 255);
-//                for (ImagePoint ip : cpx.lo) {
-//                    MatrixEntry me = ip.getME();
-//                    EllipsFitRast.setPixel(me.j, me.i, new int[]{yellow.getRed(), yellow.getGreen(), yellow.getBlue(), 180});
-//                }
-            }
-            oEdges2 = oEdges.clone();
-            HashSet<ImagePoint> loStarts = Ziegenhein_2018.getStart(oEdges);
+                List<CPX> lCPX2 = PredictSingle(blackboard, mask, oInnerEdges, grad, OuterBounds, false);
+                ImageGrid oEdges = new ImageGrid(blackboard.iaPixels.length, blackboard.iaPixels[0].length);
+                for (CPX cpx : lCPX2) {
+                    oEdges.addPoint(cpx.lo, 255);
+                }
+                oEdges2 = oEdges.clone();
+                HashSet<ImagePoint> loStarts = Ziegenhein_2018.getStart(oEdges);
 
-            for (CPX cpx : lCPX2) {
-                outer:
-                for (ImagePoint ip : cpx.lo) {
-                    for (ImagePoint loStart : loStarts) {
-                        if (ip.equals(loStart)) {
-                            cpx.oStart = ip;
-                            break outer;
+                for (CPX cpx : lCPX2) {
+                    outer:
+                    for (ImagePoint ip : cpx.lo) {
+                        for (ImagePoint loStart : loStarts) {
+                            if (ip.equals(loStart)) {
+                                cpx.oStart = ip;
+                                break outer;
+                            }
                         }
                     }
+                    if (cpx.oStart == null) {
+                        cpx.oStart = cpx.lo.get(0);
+                    }
+                    lCPXTr2.add(new CPXTr(cpx));
                 }
-                if (cpx.oStart == null) {
-                    cpx.oStart = cpx.lo.get(0);
-                }
-//                CPXTr cpxtr1 = new CPXTr(o);
-                lCPXTr2.add(new CPXTr(cpx));
-            }
 
-//            List<CPXTr> loOpen = new ArrayList<>();
-//            for (ImagePoint o : loStarts) {
-//                try {
-////                    lCPXTr2.add(new CPXTr(o));
-//                    CPXTr cpxtr2 = new CPXTr(o);
-//                    if (!cpxtr2.lo.isEmpty()) {
-////                        lCPXTr2.add(cpxtr2);
-//                    }
-//                } catch (EmptySetException ex) {
-//                    Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
-//                }
-//            }
-//            BufferedImage newResult = (new BufferedImage(blackboard.getBuffImage().getWidth(), blackboard.getBuffImage().getHeight(), BufferedImage.TYPE_INT_ARGB));
-//
-//            Graphics2D g2Result = newResult.createGraphics();
-//            g2Result.drawImage(EllipsFitARGB, 0, 0, null);
-//            g2Result.dispose();
-            System.out.println("CPXTr1 " + lCPXTr1.size() + " CPXTr2 " + lCPXTr2.size());
-            System.out.println("Intersections Second image " + ((System.currentTimeMillis() - dStartTime) / 1000.0));
-//            imgResult = newResult;
-        } else {
-            throw new UnableToRunException("Input cannot be processed", new IOException());
-        }
-        PIVBUBController control = ((PIVBUBController) StaticReferences.controller);
-        if (!lCPXTr1.isEmpty() && !lCPXTr2.isEmpty()) {
-            try {
-                int searchYPlus = -1 * Integer.valueOf(this.getSettingsValue("BUBSRadiusYPlus").toString());
-                int searchYMinus = -1 * Integer.valueOf(this.getSettingsValue("BUBSRadiusYMinus").toString());
+                System.out.println("CPXTr1 " + lCPXTr1.size() + " CPXTr2 " + lCPXTr2.size());
+                System.out.println("Intersections Second image " + ((System.currentTimeMillis() - dStartTime) / 1000.0));
 
-                int searchXPlus = Integer.valueOf(this.getSettingsValue("BUBSRadiusXPlus").toString());
-                int searchXMinus = Integer.valueOf(this.getSettingsValue("BUBSRadiusXMinus").toString());
+                PIVBUBController control = ((PIVBUBController) StaticReferences.controller);
+                if (!lCPXTr1.isEmpty() && !lCPXTr2.isEmpty()) {
+                    try {
+                        int searchYPlus = -1 * Integer.valueOf(this.getSettingsValue("BUBSRadiusYPlus").toString());
+                        int searchYMinus = -1 * Integer.valueOf(this.getSettingsValue("BUBSRadiusYMinus").toString());
+
+                        int searchXPlus = Integer.valueOf(this.getSettingsValue("BUBSRadiusXPlus").toString());
+                        int searchXMinus = Integer.valueOf(this.getSettingsValue("BUBSRadiusXMinus").toString());
 //                lCPXTr1 = getvalidCPXListFirst(lCPXTr1);
 //                lCPXTr2 = getvalidCPXListSecond(lCPXTr2);
-                Map<CPXTr, VelocityVec> oVelocityVectors = new HashMap<>();
-                for (CPXTr oContoursToTrack : lCPXTr1) {
+                        Map<CPXTr, VelocityVec> oVelocityVectors = new HashMap<>();
+                        for (CPXTr oContoursToTrack : lCPXTr1) {
 
-                    Collection<CPXTr> lo = Sorting.getEntriesWithSameCharacteristic(oContoursToTrack, lCPXTr2, 1.0, (Sorting.Characteristic2<CPXTr>) (CPXTr pParameter, CPXTr pParameter2) -> {
-                        if (pParameter.getNorm(pParameter2) < 40) {
-                            return 1.0;
+                            Collection<CPXTr> lo = Sorting.getEntriesWithSameCharacteristic(oContoursToTrack, lCPXTr2, 1.0, (Sorting.Characteristic2<CPXTr>) (CPXTr pParameter, CPXTr pParameter2) -> {
+                                if (pParameter.getNorm(pParameter2) < 40) {
+                                    return 1.0;
+                                }
+                                return 0.0;
+                            });
+
+                            List<CPXTr> loSort = new ArrayList<>();
+                            loSort.addAll(lo);
+
+                            setHelpFunction(oEdges1.iLength, oEdges1.jLength);
+                            VelocityVec oVec = getNearestForCPXTr(oContoursToTrack, loSort, 1, new Set2D(new Set1D(searchXMinus, searchXPlus), new Set1D(searchYPlus, searchYMinus)), oEdges1.iLength, oEdges1.jLength, (SideCondition2) (Object pParameter1, Object pParameter2) -> ((CPXTr) pParameter1).getDistance((CPXTr) pParameter2) < 40);
+                            if (oVec == null) {
+                                continue;
+                            }
+                            OrderedPair opSubPixDist = getSubPixelDist((CPXTr) oVec.VelocityObject1, (CPXTr) oVec.VelocityObject2);
+                            VelocityVec oVecSubPix = (VelocityVec) oVec.add(opSubPixDist);
+                            oVecSubPix.VelocityObject1 = oVec.VelocityObject1;
+                            oVecSubPix.VelocityObject2 = oVec.VelocityObject2;
+                            oVelocityVectors.put(oContoursToTrack, oVecSubPix);
                         }
-                        return 0.0;
-                    });
 
-                    List<CPXTr> loSort = new ArrayList<>();
-                    loSort.addAll(lo);
+                        setHelpFunction(oEdges1.iLength, oEdges1.jLength);
+                        for (CPXTr o : lCPXTr1) {
+                            oHelp.setPoint(o.lo, 255);
+                        }
 
-                    setHelpFunction(oEdges1.iLength, oEdges1.jLength);
-                    VelocityVec oVec = getNearestForCPXTr(oContoursToTrack, loSort, 1, new Set2D(new Set1D(searchXMinus, searchXPlus), new Set1D(searchYPlus, searchYMinus)), oEdges1.iLength, oEdges1.jLength, (SideCondition2) (Object pParameter1, Object pParameter2) -> ((CPXTr) pParameter1).getDistance((CPXTr) pParameter2) < 40);
-                    if (oVec == null) {
-                        continue;
+                        ImageInt secContours = new ImageInt(oEdges2.iLength, oEdges2.jLength, 0);
+                        for (CPXTr c : lCPXTr2) {
+                            secContours.setPointsIMGP(c.lo, 255);
+                        }
+
+                        control.getDataBUB().results_BT = new ReturnContainerBoundaryTracking(oVelocityVectors, new ImageInt(oHelp.getMatrix()), secContours);
+                        List<VelocityVec> vecs = new ArrayList<>(control.getDataBUB().results_BT.velocityVectors.values());
+                        if (Boolean.valueOf(String.valueOf(controller.getCurrentMethod().getSystemSetting(null).getSettingsValue("tivGUI_dataStore")))) {
+
+                            Colorbar oColBar = new Colorbar.StartEndLinearColorBar(0.0, new Prot_tivPIVBUBBoundaryTracking().getMaxVecLength(vecs).dEnum * 1.1, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
+                            imgResult = PaintVectors.paintOnImage(vecs, oColBar, imgResult, null, new Prot_tivPIVBUBBoundaryTracking().getAutoStretchFactor(vecs, control.getDataBUB().results_BT.contours1.iaPixels.length / 10.0, 1.0));
+                            DataPIV data = ((PIVController) StaticReferences.controller).getDataPIV();
+                            if ((boolean) controller.getCurrentMethod().getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
+                                List<VelocityVec> vecsPIV = data.oGrid.getVectors();
+                                Colorbar oColBar2 = new Colorbar.StartEndLinearColorBar(0.0, new Prot_tivPIVBUBBoundaryTracking().getMaxVecLength(vecsPIV).dEnum * 1.1, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
+                                imgResult = PaintVectors.paintOnImage(vecsPIV, oColBar2, imgResult, null, new Prot_tivPIVBUBBoundaryTracking().getAutoStretchFactor(vecs, control.getDataBUB().results_BT.contours1.iaPixels.length / 10.0, 5.0));
+                            }
+                        }
+                        System.out.println("Tracks " + vecs.size());
+                        System.out.println("Tracking finished " + ((System.currentTimeMillis() - dStartTime) / 1000.0));
+
+                    } catch (EmptySetException ex) {
+                        Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (IOException ex) {
+                        Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
                     }
-                    OrderedPair opSubPixDist = getSubPixelDist((CPXTr) oVec.VelocityObject1, (CPXTr) oVec.VelocityObject2);
-                    VelocityVec oVecSubPix = (VelocityVec) oVec.add(opSubPixDist);
-                    oVecSubPix.VelocityObject1 = oVec.VelocityObject1;
-                    oVecSubPix.VelocityObject2 = oVec.VelocityObject2;
-                    oVelocityVectors.put(oContoursToTrack, oVecSubPix);
                 }
-
-                setHelpFunction(oEdges1.iLength, oEdges1.jLength);
-                for (CPXTr o : lCPXTr1) {
-                    oHelp.setPoint(o.lo, 255);
-                }
-
-                ImageInt secContours = new ImageInt(oEdges2.iLength, oEdges2.jLength, 0);
-                for (CPXTr c : lCPXTr2) {
-                    secContours.setPointsIMGP(c.lo, 255);
-                }
-
-                control.getDataBUB().results_BT = new ReturnContainerBoundaryTracking(oVelocityVectors, new ImageInt(oHelp.getMatrix()), secContours);
-                List<VelocityVec> vecs = new ArrayList<>(control.getDataBUB().results_BT.velocityVectors.values());
-//                control.getDataBUB().results_BT = BoundTrackZiegenhein_2018.runBoundTrack(this, oEdges1, oEdges2);
-//                this.contours1 = control.getDataBUB().results_BT.contours1;
-//                this.contours2 = control.getDataBUB().results_BT.contours2;
-                if (Boolean.valueOf(String.valueOf(controller.getCurrentMethod().getSystemSetting(null).getSettingsValue("tivGUI_dataStore")))) {
-
-                    Colorbar oColBar = new Colorbar.StartEndLinearColorBar(0.0, new Prot_tivPIVBUBBoundaryTracking().getMaxVecLength(vecs).dEnum * 1.1, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
-                    imgResult = PaintVectors.paintOnImage(vecs, oColBar, imgResult, null, new Prot_tivPIVBUBBoundaryTracking().getAutoStretchFactor(vecs, control.getDataBUB().results_BT.contours1.iaPixels.length / 10.0, 1.0));
-                    DataPIV data = ((PIVController) StaticReferences.controller).getDataPIV();
-                    List<VelocityVec> vecsPIV = data.oGrid.getVectors();
-                    Colorbar oColBar2 = new Colorbar.StartEndLinearColorBar(0.0, new Prot_tivPIVBUBBoundaryTracking().getMaxVecLength(vecsPIV).dEnum * 1.1, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
-
-                    imgResult = PaintVectors.paintOnImage(vecsPIV, oColBar2, imgResult, null, new Prot_tivPIVBUBBoundaryTracking().getAutoStretchFactor(vecs, control.getDataBUB().results_BT.contours1.iaPixels.length / 10.0, 5.0));
-                }
-                System.out.println("Tracks " + vecs.size());
-                System.out.println("Tracking finished " + ((System.currentTimeMillis() - dStartTime) / 1000.0));
-
-            } catch (EmptySetException ex) {
-                Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (IOException ex) {
-                Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
+            } else {
+                throw new UnableToRunException("Input cannot be processed", new IOException());
             }
         }
-
         buildLookUp();
     }
 
     public static List<CPX> PredictSingle(ImageInt blackboard, ImageInt mask, ImageInt oInnerEdges, ImageInt grad, ImageInt OuterBounds, boolean bSetToRes) {
-//        Morphology.erosion(oInnerEdges);
-//        Morphology.dilatation(oInnerEdges);
-//        Morphology.dilatation(oInnerEdges);
+        double dMeanGrey = 0.0;
+        int iCounter = 0;
+        ImageInt maskEro = mask.clone();
+        Morphology.erosion(maskEro);
+        Morphology.erosion(maskEro);
+        Morphology.erosion(maskEro);
+        ImageInt intersecDila = oInnerEdges.clone();
+        Morphology.dilatation(intersecDila);
+        for (int i = 0; i < mask.iaPixels.length; i++) {
+            for (int j = 0; j < mask.iaPixels[0].length; j++) {
+                if (mask.iaPixels[i][j] > 0) {
+                    dMeanGrey += blackboard.iaPixels[i][j];
+                    iCounter++;
+                }
+            }
+        }
+        ImageInt internal = BasicIMGOper.threshold(blackboard.clone(), dMeanGrey / (double) iCounter);
+
+        for (int i = 0; i < mask.iaPixels.length; i++) {
+            for (int j = 0; j < mask.iaPixels[0].length; j++) {
+                if (maskEro.iaPixels[i][j] == 0 || intersecDila.iaPixels[i][j] > 0) {
+                    internal.setPoint(new MatrixEntry(i, j), 0);
+                }
+            }
+        }
+        Morphology.erosion(internal);
+        Morphology.erosion(internal);
+//        try {
+//            IMG_Writer.PaintGreyPNG(internal, new File("C:\\Users\\Nutzer\\Desktop\\owncloudHZDR\\Work\\TianBIT\\BubbleDetec\\tests\\EroMaskInternal.jpeg"));
+//            IMG_Writer.PaintGreyPNG(intersecDila, new File("C:\\Users\\Nutzer\\Desktop\\owncloudHZDR\\Work\\TianBIT\\BubbleDetec\\tests\\intersecDila.jpeg"));
+//        } catch (IOException ex) {
+//            Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
+//        }
         ImageGrid oGrid = new ImageGrid(OuterBounds.iaPixels);
 
         List<ArbStructure2> ls = PreMarked.getAreasBlackOnWhite(OuterBounds);
@@ -414,7 +418,6 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         List<ArbStructure2> lsAreas = PreMarked.getAreasBlackOnWhite(inverse);
         Morphology.markEdgesBinarizeImage(OuterBounds);
 
-//        ImageInt EllipseFit = new ImageInt(OuterBounds.iaPixels.length, OuterBounds.iaPixels[0].length, 0);
         for (int i = 0; i < OuterBounds.iaPixels.length; i++) {
             for (int j = 0; j < OuterBounds.iaPixels[0].length; j++) {
                 if (!OuterBounds.baMarker[i][j]) {
@@ -423,19 +426,9 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                 if (OuterBounds.iaPixels[i][j] > 0) {
                     oGrid.oa[oGrid.getIndex(i, j)].bMarker = true;
                     OuterBounds.iaPixels[i][j] = 255;
-//                    EllipseFit.iaPixels[i][j] = 255;
                 }
             }
         }
-//        try {
-//            IMG_Writer.PaintGreyPNG(OuterBounds, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\OuterBounds.jpeg"));
-////            IMG_Writer.PaintGreyPNG(TestlsAreas, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\TestAreas.jpeg"));
-//        } catch (IOException ex) {
-//            Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        ImageInt EllipseFit2 = new ImageInt(OuterBounds.iaPixels.length, OuterBounds.iaPixels[0].length, 0);
-
-//        ImageInt TestlsAreas = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 0);
         ImageInt oIntThin = oInnerEdges.clone();
         ImageInt Curv = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 0);
         List<List<MatrixEntry>> lCFirst = new ArrayList<>();
@@ -444,14 +437,11 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
             if (sArea.loPoints.size() > 2) {
                 List<List<MatrixEntry>> lC = new ArrayList<>();
 //                try {
-                lC = ConnectEdges(sArea, OuterBounds, oInnerEdges, grad, oIntThin, mask, Curv);
-
-//                    TestlsAreas.setPoints(sArea.loPoints, 255);
+                lC = ConnectEdges(sArea, OuterBounds, oInnerEdges, grad, oIntThin, mask, Curv, blackboard, internal);
                 lCFirst.addAll(lC);
             }
         }
 
-//        System.out.println("lCFirst " + lCFirst.size());
         List<CPX> lCPX = new ArrayList<>();
         List<Circle> lsF = new ArrayList<>();
         for (List<MatrixEntry> list : lCFirst) {
@@ -466,57 +456,7 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                 lsF.add(cc);
             }
         }
-//        for (CPX cpx : lCPX) {
-//            EllipseFit2.setPointsIMGP(cpx.lo, 255);
-//        }
-//        for (Circle circle : lsF) {
-//            EllipseFit2.setPoints(circle.lmeCircle, 127);
-//        }
 
-        //****Write out****
-//            Circle.writeOut(lCFirst, sDir + System.getProperty("file.separator") + sName + "First.csv");
-//        try {
-//            IMG_Writer.PaintGreyPNG(EllipseFit2, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\EllipseFit2.jpeg"));
-//            IMG_Writer.PaintGreyPNG(Curv, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\Curv.jpeg"));
-//        } catch (IOException ex) {
-//            Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        ImageInt oIntThin2 = oInnerEdges.clone();
-//        Morphology.dilatation(oIntThin2);
-//        Ziegenhein_2018.thinoutEdges(oIntThin2);
-//
-//        for (int i = 0; i < blackboard.iaPixels.length; i++) {
-//            for (int j = 0; j < blackboard.iaPixels[0].length; j++) {
-//                if (mask.iaPixels[i][j] == 0) {
-//                    oIntThin2.iaPixels[i][j] = 0;
-//                }
-//                if (OuterBounds.iaPixels[i][j] == 255 && oIntThin2.iaPixels[i][j] == 0) {
-//                    oIntThin2.iaPixels[i][j] = 255;
-//                }
-//                if (OuterBounds.iaPixels[i][j] == 255 && oInnerEdges.iaPixels[i][j] > 0) {
-//                    oIntThin2.iaPixels[i][j] = 0;
-//
-//                }
-//
-//            }
-//        }
-//
-//        for (int i = 0; i < blackboard.iaPixels.length; i++) {
-//            for (int j = 0; j < blackboard.iaPixels[0].length; j++) {
-//                if (oInnerEdges.iaPixels[i][j] == 155) {
-//                    for (MatrixEntry me : oInnerEdges.getNeighborsN8(i, j)) {
-//                        if (me != null && oInnerEdges.isInside(me.i, me.j)) {
-//                            for (MatrixEntry mme : oInnerEdges.getNeighborsN8(me.i, me.j)) {
-//                                if (mme != null && oInnerEdges.isInside(mme.i, mme.j)) {
-//                                    oIntThin2.setPoint(mme, 0);
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-//
-//            }
-//        }
         ////*******Ziegenhein EllipseFit *******************
 //            List<Circle> lCSecond = new ArrayList<>();
 //            try {
@@ -566,13 +506,12 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         }
     }
 
-    public static List<List<MatrixEntry>> ConnectEdges(ArbStructure2 ASArea, ImageInt oOuterEdges, ImageInt oInnerEdges, ImageInt iGrad, ImageInt oIntThin, ImageInt iMask, ImageInt Curv) {
+    public static List<List<MatrixEntry>> ConnectEdges(ArbStructure2 ASArea, ImageInt oOuterEdges, ImageInt oInnerEdges, ImageInt iGrad, ImageInt oIntThin, ImageInt iMask, ImageInt Curv, ImageInt blackboard, ImageInt internalBrightSpots) {
         List<ArbStructure2> innerEdges = new ArrayList<>();
         List<ArbStructure2> lsHelp = new ArrayList<>();
         List<MatrixEntry> lmeOuter = new ArrayList<>();
         List<MatrixEntry> lmeHelp = new ArrayList<>();
         List<List<MatrixEntry>> lCReturn = new ArrayList<>();
-//        ImageGrid oGrid = new ImageGrid(oOuterEdges.iaPixels);
         for (MatrixEntry me : ASArea.loPoints) {
             if (oOuterEdges.iaPixels[me.i][me.j] == 255) {
                 lmeOuter.add(me);
@@ -590,13 +529,7 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         }
         oInnerEdges.setPoints(lmeHelp, 255);
         ArbStructure2 outerEdge = new ArbStructure2(lmeOuter);
-//        getCurv(outerEdge, Curv, iMask, 0.1, 30, 30);
-        getConcavePoints(outerEdge, Curv, iMask, 30, 2);
-//                try {
-//                    IMG_Writer.PaintGreyPNG(Curv, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\Test.jpeg"));
-//                } catch (IOException ex) {
-//                    Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
-//                }
+        getConcavePoints(outerEdge.loPoints, Curv, iMask, 30, 2, 0);
         ImageInt inverse2 = BasicIMGOper.invert(Curv.clone());
 
         for (MatrixEntry me : ASArea.loPoints) {
@@ -626,9 +559,7 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         if (innerEdges.size() > 0) {
             //***Mark outer ends
             for (int i = 0; i < lsHelp.size(); i++) {
-//                System.out.println("Before "+lsHelp.get(i).loPoints.size());
                 Ziegenhein_2018.thinoutEdges(oIntThin, lsHelp.get(i));
-//                System.out.println("After "+lsHelp.get(i).loPoints.size());
                 setEnds(oIntThin, oOuterEdges, lsHelp.get(i), 175);
                 for (MatrixEntry me : lsHelp.get(i).loPoints) {
                     if (oIntThin.iaPixels[me.i][me.j] == 175) {
@@ -641,12 +572,12 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
             }
             //***Connect IE ends to border
             for (ArbStructure2 as : innerEdges) {
-                connectEdgesCloseToBorder(outerEdge, as, oInnerEdges, 6, 175, 200);
+                connectEdgesCloseToBorder(outerEdge, as, oInnerEdges, 6, 175, 200, internalBrightSpots);
             }
 
             //****Connect close IE ends
             for (ArbStructure2 as : innerEdges) {
-                connectInsideEdges(innerEdges, as, oInnerEdges, 36, 175, 230, outerEdge, iGrad);
+                connectInsideEdges(innerEdges, as, oInnerEdges, 36, 175, 230, outerEdge, iGrad, internalBrightSpots);
             }
             ImageInt Outer2 = new ImageInt(oOuterEdges.iaPixels.length, oOuterEdges.iaPixels[0].length, 0);
             for (MatrixEntry me : ASArea.loPoints) {
@@ -715,162 +646,133 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                     }
                 }
             }
-            //**********************************
 
+            //**********************************
             ImageInt OverlappCircs = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 255);
-//            boolean bDesired = false;
+            boolean bDesired = false;
             for (MatrixEntry me : ASArea.loPoints) {
-//                if (me.equals(new MatrixEntry(175, 1637))) {
-//                    bDesired = true;
-//                }
+                if (me.equals(new MatrixEntry(320, 614))) {
+                    bDesired = true;
+                }
                 if (oInnerEdges.iaPixels[me.i][me.j] == 0) {
                     OverlappCircs.setPoint(me, 0);
                 }
             }
 
             ImageInt OverlappCircs2 = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 0);
+            ImageInt Org = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 0);
             List<List<MatrixEntry>> llmeBounds = new ArrayList<>();
             int iCounter = 254;
             for (MatrixEntry me : ASArea.loPoints) {
+                Org.setPoint(me, blackboard.iaPixels[me.i][me.j]);
                 if (OverlappCircs.iaPixels[me.i][me.j] == 0) {
-                    ArbStructure2 as = new ArbStructure2((ArrayList) new Morphology().markFillN8(OverlappCircs, me.i, me.j));
-                    List<MatrixEntry> meBound = new ArrayList<>();
-                    for (MatrixEntry loPoint : as.loPoints) {
-                        if (oOuterEdges.iaPixels[loPoint.i][loPoint.j] == 255) {
-                            loPoint.dValue = iCounter;
-                            meBound.add(loPoint);
+                    ArbStructure2 as = new ArbStructure2((ArrayList) new Morphology().markFillN4(OverlappCircs, me.i, me.j));
+                    if (as.loPoints.size() > 5) {
+                        List<MatrixEntry> meBound = new ArrayList<>();
+                        for (MatrixEntry loPoint : as.loPoints) {
+                            if (oOuterEdges.iaPixels[loPoint.i][loPoint.j] == 255) {
+                                loPoint.dValue = iCounter;
+                                meBound.add(loPoint);
+                            }
                         }
+                        if (meBound.size() > 0) {
+                            llmeBounds.add(meBound);
+                        }
+                        OverlappCircs.setPoints(as.loPoints, 255);
+                        OverlappCircs2.setPoints(as.loPoints, iCounter);
+                        iCounter -= 50;
                     }
-                    if (meBound.size() > 0) {
-                        llmeBounds.add(meBound);
-                    }
-                    OverlappCircs.setPoints(as.loPoints, 255);
-                    OverlappCircs2.setPoints(as.loPoints, iCounter);
-                    iCounter -= 10;
                 }
             }
-//            if (bDesired){
-//                        try {
-//                    IMG_Writer.PaintGreyPNG(OverlappCircs2, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\OverlappCircs2.jpeg"));
+            //*********Find Curv direction of innerbound and add all connected to region from OverlappCircs2
+            if (bDesired) {
+
+//                for (int j = 5; j < 36; j += 5) {
+//                    ImageInt oBorderPixels = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 0);
+//                    ImageInt oInnerClone = oInnerEdges.clone();
+//                    for (ArbStructure2 innerEdge : innerEdges) {
+//                        ArbStructure2 innerEdge2 = innerEdge.clone();
+////                        Ziegenhein_2018.thinoutEdges(oInnerClone, innerEdge2);
+//                        getCurv(innerEdge2.loPoints, oBorderPixels, 5, 0);
+//                    }
+//                    try {
+//                        IMG_Writer.PaintGreyPNG(oBorderPixels, new File("C:\\Users\\Nutzer\\Desktop\\owncloudHZDR\\Work\\TianBIT\\BubbleDetec\\tests\\Bord_" + 5 + ".jpeg"));
+//                    } catch (IOException ex) {
+//                        Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
+//                    }
+////                }
 //
-//                } catch (IOException ex) {
-//                    Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
+//                for (int i = 0; i < llmeBounds.size(); i++) {
+//                    for (int j = 5; j < 36; j += 5) {
+//
+//                        int iValue = (int) llmeBounds.get(i).get(0).dValue;
+//                        List<MatrixEntry> lmeBord = new ArrayList<>();
+//                        for (ArbStructure2 innerEdge : innerEdges) {
+////                    lmeBord.addAll(getBorderEntries(innerEdge.loPoints, OverlappCircs2, iValue));
+//
+////                            getCurv(getBorderEntries(innerEdge.loPoints, OverlappCircs2, iValue), oBorderPixels, j, getBorderEntries(innerEdge.loPoints, OverlappCircs2, iValue).size());
+////                    getConcavePoints(getBorderEntries(innerEdge.loPoints, OverlappCircs2, iValue), oBorderPixels, OverlappCircs2, j, 3, iValue);
+////                    }
+//                        }
+//
+//                    }
 //                }
-//            }
-            ImageInt oInnerClone = oInnerEdges.clone();
+//                
+//                oBorderPixels.setPoints(lmeBord, iValue);
+            }
+
+
             for (ArbStructure2 innerEdge : innerEdges) {
                 MatrixEntry me = getMeanEntry(innerEdge.loPoints);
                 int iValue = OverlappCircs2.getValue(me);
                 if (iValue != 0) {
-                    Ziegenhein_2018.thinoutEdges(oInnerClone, innerEdge);
+//                    Ziegenhein_2018.thinoutEdges(oInnerClone, innerEdge);
                     for (int i = 0; i < llmeBounds.size(); i++) {
                         if (llmeBounds.get(i).get(0).dValue == (double) iValue) {
-//                            System.out.println("Before " + llmeBounds.get(i).size());
-                            llmeBounds.get(i).addAll(innerEdge.loPoints);
-//                            System.out.println("After " + llmeBounds.get(i).size());
+
+                            llmeBounds.get(i).addAll(getBorderEntries(innerEdge.loPoints, OverlappCircs2, iValue));
+
                         }
                     }
                 }
             }
-//            System.out.println("Number of IE " + innerEdges.size());
-//            System.out.println("Number of Bounds " + llmeBounds.size());
             if (llmeBounds.size() > 1) {
-//                ImageInt GetCPX = new ImageInt(oInnerEdges.iaPixels.length, oInnerEdges.iaPixels[0].length, 0);
-
-//                for (List<MatrixEntry> meBound : llmeBounds) {
-//                    GetCPX.setPoints(meBound, 255);
-//                }
                 for (List<MatrixEntry> meBound : llmeBounds) {
                     if (meBound.size() > 3) {
                         lCReturn.add(meBound);
                     }
-//                    MatrixEntry meStart = new MatrixEntry(0, 0);
-//                    for (MatrixEntry me : meBound) {
-//                        List<MatrixEntry> loRef = oInnerEdges.getNeighborsN8(me.i, me.j);
-//                        for (MatrixEntry mme : loRef) {
-//                            if (mme != null) {
-//                                if (oInnerEdges.iaPixels[mme.i][mme.j] == 255) {
-//                                    meStart = me;
-//                                    break;
-//                                }
-//                            }
-//                        }
-//                    N8 oN8 = new N8(BoundsIntersecs, me.i, me.j);
-//                    if (oN8.getBP() == 1) {
-//                        meStart=me;
-//                        break;
-//                    }
-//                    if (BoundsIntersecs.iaPixels[me.i][me.j] == 128) {
-//                        meStart = me;
-//                        break;
-//                    }
-//                    }
-//                ImagePoint oStart = new ImagePoint
-//                ImageGrid oGrid = new ImageGrid(GetCPX.iaPixels);
-//                CPX oCPX = new CPX(new ImagePoint(meStart.j, meStart.i, 255, oGrid));
-//                System.out.println(oCPX.lo.size() + " " + meBound.size());
-//                    CPX oCirc = new CPX();
-//                    for (MatrixEntry me : meBound) {
-//                        oCirc.addPoint(new ImagePoint(me.j, me.i, 255, oGrid));
-//                    }
-//                    Circle oCirc = EllipseDetection.EllipseFit(meBound);
-                    int iph = 0;
-//                    if (oCirc != null) {
-//                        for (MatrixEntry matrixEntry : oCirc.lmeCircle) {
-//                            Curv.setPoint(matrixEntry, 175);
-//                        }
 
                 }
 
-//                try {
-//                    IMG_Writer.PaintGreyPNG(GetCPX, new File("C:\\Users\\Nutzer\\Desktop\\TestNN\\Test.jpeg"));
-//                } catch (IOException ex) {
-//                    Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
-//                }
-//            }
-//            for (ArbStructure2 innerEdge : innerEdges) {
-//                List<MatrixEntry> lmeCurv = new ArrayList<>();
-//                for (MatrixEntry me : innerEdge.loPoints) {
-//                    if (oInnerEdges.iaPixels[me.i][me.j] == 155) {
-//                        lmeCurv.add(me);
-//                    }
-//                }
-//                if (lmeCurv.size() == 2) {
-//                    connectAlongShortestPath(innerEdge, lmeCurv.get(0), lmeCurv.get(1), oInnerEdges);
-//                } else if (lmeCurv.size() > 2) {
-//                    lmeHelp.clear();
-//                    for (MatrixEntry me : lmeCurv) {
-//                        if (!containsME(lmeHelp, me)) {
-//                            MatrixEntry mme = getClosest(lmeCurv, me);
-//                            connectAlongShortestPath(innerEdge, me, mme, oInnerEdges);
-//                            lmeHelp.add(mme);
-//                        }
-//                    }
-//                }
-//                for (MatrixEntry me : lmeCurv) {
-//                    oInnerEdges.setPoint(me, 155);
-//                }
             } else {
                 if (lmeOuter.size() > 3) {
                     lCReturn.add(lmeOuter);
                 }
             }
         } else {
-//            Circle oCirc = EllipseDetection.EllipseFit(lmeOuter);
-//            CPX oCirc = new CPX();
-//            for (MatrixEntry me : lmeOuter) {
-//                oCirc.addPoint(new ImagePoint(me.j, me.i, 255, oGrid));
-//            }
-//            int iph = 0;
-//            if (oCirc != null) {
-//                for (MatrixEntry matrixEntry : oCirc.lmeCircle) {
-//                    Curv.setPoint(matrixEntry, 175);
-//                }
             if (lmeOuter.size() > 3) {
                 lCReturn.add(lmeOuter);
             }
         }
         return lCReturn;
+    }
+
+    public static List<MatrixEntry> getBorderEntries(List<MatrixEntry> loPoints, ImageInt OverlappCircs2, int iValue) {
+        List<MatrixEntry> lmeReturn = new ArrayList<>();
+        for (MatrixEntry me : loPoints) {
+            boolean bAdd = false;
+            for (MatrixEntry mme : OverlappCircs2.getNeighborsN8(me.i, me.j)) {
+                if (mme != null) {
+                    if (OverlappCircs2.iaPixels[mme.i][mme.j] == iValue) {
+                        bAdd = true;
+                    }
+                }
+            }
+            if (bAdd) {
+                lmeReturn.add(me);
+            }
+        }
+        return lmeReturn;
     }
 
     public static List<Circle> Ziegenhein_2019_GUI(List<CPX> allContours, Settings oSettings) throws EmptySetException, IOException {
@@ -1122,54 +1024,78 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         return lmeSorted;
     }
 
-    public static void getCurv(ArbStructure2 as, ImageInt oOuter, ImageInt iMask, double dMax, int iJump, int iLength) {
-        for (MatrixEntry me : as.loPoints) {
-//            System.out.println("New "+me);
-            List<MatrixEntry> lmeHelp = new ArrayList<>();
-            List<MatrixEntry> lmeMean = new ArrayList<>();
-            for (MatrixEntry asme : as.loPoints) {
-                lmeHelp.add(new MatrixEntry(asme));
-            }
-            List<OrderedPair> lop = new ArrayList<>();
-            MatrixEntry meCurrent = me;
-            lop.add(me.toOrderedPair());
-            lmeMean.add(me);
-            for (int i = 0; i < iLength; i++) {
-                MatrixEntry mme = getClosestEntry(meCurrent, lmeHelp);
-                lop.add(mme.toOrderedPair());
-                lmeMean.add(mme);
-                meCurrent = mme;
-                lmeHelp.remove(meCurrent);
-            }
-            meCurrent = me;
-            for (int i = 0; i < iLength; i++) {
-                MatrixEntry mme = getClosestEntry(meCurrent, lmeHelp);
-                lop.add(0, mme.toOrderedPair());
-                lmeMean.add(0, mme);
-                meCurrent = mme;
-                lmeHelp.remove(meCurrent);
-            }
-            PLF oplf = new PLF(lop);
-            OrderedPair opcurve = oplf.getCurv(iJump, iLength, iJump);
-//            meCurrent = getMeanEntry(lmeMean);
-//            if (iMask.iaPixels[meCurrent.i][meCurrent.j] == 0) {
-//                opcurve.dValue = opcurve.dValue * 2.0;
-////                System.out.println("Posi " + me);
-////                System.out.println("Mean " + meCurrent);
-////                oOuter.setPoint(me, 255);
+    public static void getCurv(List<MatrixEntry> loPoints, ImageInt oOuter, int iJump, int iLength) {
+        double dMax = 0.0;
+//        List<MatrixEntry> lme = new ArrayList<>();
+//        for (MatrixEntry me : loPoints) {
+//            List<MatrixEntry> lmeHelp = new ArrayList<>();
+//            List<MatrixEntry> lmeMean = new ArrayList<>();
+//            for (MatrixEntry asme : loPoints) {
+//                lmeHelp.add(new MatrixEntry(asme));
 //            }
-//            System.out.println(lop.get(10));
-//            System.out.println(opcurve.dValue);
-            oOuter.setPoint(me, (int) (opcurve.dValue * 255 / dMax));
+//            List<OrderedPair> lop = new ArrayList<>();
+//            MatrixEntry meCurrent = me;
+//            lop.add(me.toOrderedPair());
+//            lmeMean.add(me);
+//            for (int i = 0; i < iLength; i++) {
+//                MatrixEntry mme = getClosestEntry(meCurrent, lmeHelp);
+//                lop.add(mme.toOrderedPair());
+//                lmeMean.add(mme);
+//                meCurrent = mme;
+//                lmeHelp.remove(meCurrent);
+//            }
+//            meCurrent = me;
+//            for (int i = 0; i < iLength; i++) {
+//                MatrixEntry mme = getClosestEntry(meCurrent, lmeHelp);
+//                lop.add(0, mme.toOrderedPair());
+//                lmeMean.add(0, mme);
+//                meCurrent = mme;
+//                lmeHelp.remove(meCurrent);
+//            }
+//            PLF oplf = new PLF(lop);
+//            OrderedPair opcurve = oplf.getCurv(iJump, iLength, iJump);
+////            meCurrent = getMeanEntry(lmeMean);
+////            if (iMask.iaPixels[meCurrent.i][meCurrent.j] == 0) {
+////                opcurve.dValue = opcurve.dValue * 2.0;
+//////                System.out.println("Posi " + me);
+//////                System.out.println("Mean " + meCurrent);
+//////                oOuter.setPoint(me, 255);
+////            }
+////            System.out.println(lop.get(10));
+////            System.out.println(opcurve.dValue);
+//
+////            oOuter.setPoint(me, (int) (opcurve.dValue * 254));
+//            me.dValue = opcurve.dValue * 254;
+//            lme.add(me);
+//        }
+
+        List<OrderedPair> lop = new ArrayList<>();
+        for (MatrixEntry me : loPoints) {
+            lop.add(new OrderedPair(me.j, me.i));
         }
+        List<MatrixEntry> lmeHelp = new ArrayList<>();
+        PLF oplf = new PLF(lop);
+        for (int i = 0; i < oplf.getPoints().size(); i++) {
+            OrderedPair opcurve = oplf.getCurv(iJump, i, iJump);
+            if (opcurve.dValue > dMax) {
+                dMax = opcurve.dValue;
+            }
+            lmeHelp.add(new MatrixEntry((int) oplf.getPoints().get(i).y, (int) oplf.getPoints().get(i).x, opcurve.dValue * 254));
+        }
+
+        for (MatrixEntry me : lmeHelp) {
+            me.dValue = me.dValue / dMax;
+            oOuter.setPoint(me, (int) me.dValue);
+        }
+
     }
 
-    public static void getConcavePoints(ArbStructure2 as, ImageInt oOuter, ImageInt iMask, int iLength, double PixelDist) {
-        for (MatrixEntry me : as.loPoints) {
+    public static void getConcavePoints(List<MatrixEntry> loPoints, ImageInt oOuter, ImageInt iMask, int iLength, double PixelDist, int iMaskValue) {
+        for (MatrixEntry me : loPoints) {
 //            System.out.println("New "+me);
             List<MatrixEntry> lmeHelp = new ArrayList<>();
             List<MatrixEntry> lmeMean = new ArrayList<>();
-            for (MatrixEntry asme : as.loPoints) {
+            for (MatrixEntry asme : loPoints) {
                 lmeHelp.add(new MatrixEntry(asme));
             }
             MatrixEntry meCurrent = me;
@@ -1188,12 +1114,10 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                 lmeHelp.remove(meCurrent);
             }
             meCurrent = getMeanEntry(lmeMean);
-            if (iMask.iaPixels[meCurrent.i][meCurrent.j] == 0) {
+            if (iMask.iaPixels[meCurrent.i][meCurrent.j] == iMaskValue) {
                 boolean bOut = true;
                 for (MatrixEntry meOuter : lmeMean) {
                     if (meCurrent.getNorm(meOuter) < PixelDist) {
-//                System.out.println("Posi " + me);
-//                System.out.println("Mean " + meCurrent);
                         bOut = false;
 
                     }
@@ -1230,7 +1154,6 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
             lmeHelp.add(new MatrixEntry(asme));
         }
         List<MatrixEntry> lmeSorted = new ArrayList<>();
-//        lmeSorted.add(meStrat);
         for (int i = 0; i < lme.size(); i++) {
             lmeHelp.remove(meStrat);
             lmeSorted.add(meStrat);
@@ -1263,6 +1186,22 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         return meReturn;
     }
 
+    public static MatrixEntry getClosestEntryConnected(MatrixEntry me, List<MatrixEntry> lme) {
+        double dMinDist = Double.MAX_VALUE;
+        MatrixEntry meReturn = me;
+        for (MatrixEntry mme : lme) {
+            if (me.getNorm(mme) < dMinDist && !mme.equals(me) && me.getNorm(mme) <= Math.sqrt(2.0)) {
+                dMinDist = me.getNorm(mme);
+                meReturn = mme;
+            }
+        }
+        if (!meReturn.equals(me)) {
+            return meReturn;
+        } else {
+            return null;
+        }
+    }
+
     public static MatrixEntry getMeanEntry(List<MatrixEntry> lme) {
         MatrixEntry me = new MatrixEntry(0, 0);
         for (MatrixEntry mme : lme) {
@@ -1285,9 +1224,6 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                     bNeighOuter = true;
                 }
             }
-//            if (oInnerEdges.iaPixels[me.i][me.j] > 0 && oOuterEdges.iaPixels[me.i][me.j] == 255) {
-//                oInnerEdges.setPoint(me, 0);
-//            }
 
             if (oInnerEdges.iaPixels[me.i][me.j] > 0 && oOuterEdges.iaPixels[me.i][me.j] != 255 && !bNeighOuter) {
                 N8 oN8 = new N8(oInnerEdges, me.i, me.j);
@@ -1316,9 +1252,6 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                     bNeighOuter = true;
                 }
             }
-//            if (oInnerEdges.iaPixels[me.i][me.j] > 0 && oOuterEdges.iaPixels[me.i][me.j] == 255) {
-//                oInnerEdges.setPoint(me, 0);
-//            }
 
             if (oInnerEdges.iaPixels[me.i][me.j] > 0 && oOuterEdges.iaPixels[me.i][me.j] != 255 && !bNeighOuter) {
                 N8 oN8 = new N8(oInnerEdges, me.i, me.j);
@@ -1345,7 +1278,6 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                         || (oN8.getBP() == 2 && oN8.getC2P() == 1)
                         || (oN8.getBP() == 3 && oN8.getC3P() == 1)) {
                     oInnerEdges.setPoint(me, iValue);
-//                lme.add(me);
                 }
             }
         } else {
@@ -1354,35 +1286,12 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                 if (oN8.getBP() == 1
                         || (oN8.getBP() == 2 && oN8.getC2P() == 1)) {
                     oInnerEdges.setPoint(me, iValue);
-//                lme.add(me);
                 }
             }
         }
 
     }
 
-//    public static void checkIfFullySeperated(List<ArbStructure2> AS, ImageInt inside3, ImageGrid oInnerEdges, ImageGrid oOuterEdges) {
-//        AS.clear();
-//        AS = BasicOperations.getAllStructures(inside3);
-//        for (ArbStructure2 as : AS) {
-//            BasicOperations.markOuterEnds2(as.loPoints, oInnerEdges, 127, oOuterEdges);
-//            boolean bMarkers = false;
-//            for (MatrixEntry loPoint : as.loPoints) {
-//                ImagePoint oIP = new ImagePoint(loPoint.j, loPoint.i, 0, oInnerEdges);
-//                if (oInnerEdges.oa[oIP.i].iValue == 127) {
-//                    bMarkers = true;
-//                    break;
-//                }
-//            }
-//            if (!bMarkers) {
-//                for (MatrixEntry loPoint : as.loPoints) {
-//                    ImagePoint oIP = new ImagePoint(loPoint.j, loPoint.i, 0, oInnerEdges);
-//                    oInnerEdges.setPoint(oIP, 126);
-//                }
-//            }
-//        }
-//        inside3 = new ImageInt(oInnerEdges.getMatrix());
-//    }
     public static double getMaxDeriNeighbor(MatrixEntry meRef, ImageInt iGrad) {
         List<MatrixEntry> loRef = iGrad.getNeighborsN8(meRef.i, meRef.j);
         loRef.add(meRef);
@@ -1395,215 +1304,13 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
             }
         }
         return dMax;
-//Grad1 -> in op direction
-//Grad2 -> clockwise of op direction
-//Grad3 -> anticlockwise of op direction
-//        MatrixEntry meMax = new MatrixEntry();
-//        double Grad1 = 0.0;
-//        double Grad2 = 0.0;
-//        double Grad3 = 0.0;
-//        if (op.x > 0 && op.y > 0) {
-//            MatrixEntry me1 = new MatrixEntry(meRef.i + 1, meRef.j + 1);
-//            MatrixEntry me2 = new MatrixEntry(meRef.i, meRef.j + 1);
-//            MatrixEntry me3 = new MatrixEntry(meRef.i + 1, meRef.j);
-//
-//            if (iGrad.isInside(me1.i, me1.j)) {
-//                Grad1 = iGrad.iaPixels[me1.i][me1.j];
-//            }
-//            if (iGrad.isInside(me2.i, me2.j)) {
-//                Grad2 = iGrad.iaPixels[me2.i][me2.j];
-//            }
-//            if (iGrad.isInside(me3.i, me3.j)) {
-//                Grad3 = iGrad.iaPixels[me3.i][me3.j];
-//            }
-//            if (Grad1 >= Grad2 && Grad1 >= Grad3) {
-//                meMax = me1;
-//            }
-//            if (Grad2 >= Grad1 && Grad2 >= Grad3) {
-//                meMax = me2;
-//            }
-//            if (Grad3 >= Grad1 && Grad3 >= Grad1) {
-//                meMax = me3;
-//            }
-//        }
-//        if (op.x > 0 && op.y < 0) {
-//            MatrixEntry me1 = new MatrixEntry(meRef.i - 1, meRef.j + 1);
-//            MatrixEntry me2 = new MatrixEntry(meRef.i, meRef.j + 1);
-//            MatrixEntry me3 = new MatrixEntry(meRef.i - 1, meRef.j);
-//            if (iGrad.isInside(me1.i, me1.j)) {
-//                Grad1 = iGrad.iaPixels[me1.i][me1.j];
-//            }
-//            if (iGrad.isInside(me2.i, me2.j)) {
-//                Grad2 = iGrad.iaPixels[me2.i][me2.j];
-//            }
-//            if (iGrad.isInside(me3.i, me3.j)) {
-//                Grad3 = iGrad.iaPixels[me3.i][me3.j];
-//            }
-//            if (Grad1 >= Grad2 && Grad1 >= Grad3) {
-//                meMax = me1;
-//            }
-//            if (Grad2 >= Grad1 && Grad2 >= Grad3) {
-//                meMax = me2;
-//            }
-//            if (Grad3 >= Grad1 && Grad3 >= Grad1) {
-//                meMax = me3;
-//            }
-//        }
-//        if (op.x < 0 && op.y < 0) {
-//            MatrixEntry me1 = new MatrixEntry(meRef.i - 1, meRef.j - 1);
-//            MatrixEntry me2 = new MatrixEntry(meRef.i - 1, meRef.j);
-//            MatrixEntry me3 = new MatrixEntry(meRef.i, meRef.j - 1);
-//            if (iGrad.isInside(me1.i, me1.j)) {
-//                Grad1 = iGrad.iaPixels[me1.i][me1.j];
-//            }
-//            if (iGrad.isInside(me2.i, me2.j)) {
-//                Grad2 = iGrad.iaPixels[me2.i][me2.j];
-//            }
-//            if (iGrad.isInside(me3.i, me3.j)) {
-//                Grad3 = iGrad.iaPixels[me3.i][me3.j];
-//            }
-//            if (Grad1 >= Grad2 && Grad1 >= Grad3) {
-//                meMax = me1;
-//            }
-//            if (Grad2 >= Grad1 && Grad2 >= Grad3) {
-//                meMax = me2;
-//            }
-//            if (Grad3 >= Grad1 && Grad3 >= Grad1) {
-//                meMax = me3;
-//            }
-//        }
-//        if (op.x < 0 && op.y > 0) {
-//            MatrixEntry me1 = new MatrixEntry(meRef.i + 1, meRef.j - 1);
-//            MatrixEntry me2 = new MatrixEntry(meRef.i, meRef.j - 1);
-//            MatrixEntry me3 = new MatrixEntry(meRef.i + 1, meRef.j);
-//            if (iGrad.isInside(me1.i, me1.j)) {
-//                Grad1 = iGrad.iaPixels[me1.i][me1.j];
-//            }
-//            if (iGrad.isInside(me2.i, me2.j)) {
-//                Grad2 = iGrad.iaPixels[me2.i][me2.j];
-//            }
-//            if (iGrad.isInside(me3.i, me3.j)) {
-//                Grad3 = iGrad.iaPixels[me3.i][me3.j];
-//            }
-//            if (Grad1 >= Grad2 && Grad1 >= Grad3) {
-//                meMax = me1;
-//            }
-//            if (Grad2 >= Grad1 && Grad2 >= Grad3) {
-//                meMax = me2;
-//            }
-//            if (Grad3 >= Grad1 && Grad3 >= Grad1) {
-//                meMax = me3;
-//            }
-//        }
-//        if (op.x > 0 && op.y == 0.0) {
-//            MatrixEntry me1 = new MatrixEntry(meRef.i, meRef.j + 1);
-//            MatrixEntry me2 = new MatrixEntry(meRef.i + 1, meRef.j + 1);
-//            MatrixEntry me3 = new MatrixEntry(meRef.i - 1, meRef.j + 1);
-//            if (iGrad.isInside(me1.i, me1.j)) {
-//                Grad1 = iGrad.iaPixels[me1.i][me1.j];
-//            }
-//            if (iGrad.isInside(me2.i, me2.j)) {
-//                Grad2 = iGrad.iaPixels[me2.i][me2.j];
-//            }
-//            if (iGrad.isInside(me3.i, me3.j)) {
-//                Grad3 = iGrad.iaPixels[me3.i][me3.j];
-//            }
-//            if (Grad1 >= Grad2 && Grad1 >= Grad3) {
-//                meMax = me1;
-//            }
-//            if (Grad2 >= Grad1 && Grad2 >= Grad3) {
-//                meMax = me2;
-//            }
-//            if (Grad3 >= Grad1 && Grad3 >= Grad1) {
-//                meMax = me3;
-//            }
-//
-//        }
-//
-//        if (op.x < 0 && op.y == 0.0) {
-//            MatrixEntry me1 = new MatrixEntry(meRef.i, meRef.j - 1);
-//            MatrixEntry me2 = new MatrixEntry(meRef.i - 1, meRef.j - 1);
-//            MatrixEntry me3 = new MatrixEntry(meRef.i + 1, meRef.j - 1);
-//
-//            if (iGrad.isInside(me1.i, me1.j)) {
-//                Grad1 = iGrad.iaPixels[me1.i][me1.j];
-//            }
-//            if (iGrad.isInside(me2.i, me2.j)) {
-//                Grad2 = iGrad.iaPixels[me2.i][me2.j];
-//            }
-//            if (iGrad.isInside(me3.i, me3.j)) {
-//                Grad3 = iGrad.iaPixels[me3.i][me3.j];
-//            }
-//            if (Grad1 >= Grad2 && Grad1 >= Grad3) {
-//                meMax = me1;
-//            }
-//            if (Grad2 >= Grad1 && Grad2 >= Grad3) {
-//                meMax = me2;
-//            }
-//            if (Grad3 >= Grad1 && Grad3 >= Grad1) {
-//                meMax = me3;
-//            }
-//
-//        }
-//
-//        if (op.x == 0 && op.y < 0.0) {
-//            MatrixEntry me1 = new MatrixEntry(meRef.i - 1, meRef.j);
-//            MatrixEntry me2 = new MatrixEntry(meRef.i - 1, meRef.j + 1);
-//            MatrixEntry me3 = new MatrixEntry(meRef.i - 1, meRef.j - 1);
-//
-//            if (iGrad.isInside(me1.i, me1.j)) {
-//                Grad1 = iGrad.iaPixels[me1.i][me1.j];
-//            }
-//            if (iGrad.isInside(me2.i, me2.j)) {
-//                Grad2 = iGrad.iaPixels[me2.i][me2.j];
-//            }
-//            if (iGrad.isInside(me3.i, me3.j)) {
-//                Grad3 = iGrad.iaPixels[me3.i][me3.j];
-//            }
-//            if (Grad1 >= Grad2 && Grad1 >= Grad3) {
-//                meMax = me1;
-//            }
-//            if (Grad2 >= Grad1 && Grad2 >= Grad3) {
-//                meMax = me2;
-//            }
-//            if (Grad3 >= Grad1 && Grad3 >= Grad1) {
-//                meMax = me3;
-//            }
-//
-//        }
-//
-//        if (op.x == 0 && op.y > 0.0) {
-//            MatrixEntry me1 = new MatrixEntry(meRef.i + 1, meRef.j);
-//            MatrixEntry me2 = new MatrixEntry(meRef.i + 1, meRef.j - 1);
-//            MatrixEntry me3 = new MatrixEntry(meRef.i + 1, meRef.j + 1);
-//
-//            if (iGrad.isInside(me1.i, me1.j)) {
-//                Grad1 = iGrad.iaPixels[me1.i][me1.j];
-//            }
-//            if (iGrad.isInside(me2.i, me2.j)) {
-//                Grad2 = iGrad.iaPixels[me2.i][me2.j];
-//            }
-//            if (iGrad.isInside(me3.i, me3.j)) {
-//                Grad3 = iGrad.iaPixels[me3.i][me3.j];
-//            }
-//            if (Grad1 >= Grad2 && Grad1 >= Grad3) {
-//                meMax = me1;
-//            }
-//            if (Grad2 >= Grad1 && Grad2 >= Grad3) {
-//                meMax = me2;
-//            }
-//            if (Grad3 >= Grad1 && Grad3 >= Grad1) {
-//                meMax = me3;
-//            }
-//
-//        }
-//        return meMax;
+
     }
 
-    public static void connectEdgesCloseToBorder(ArbStructure2 OuterEdge, ArbStructure2 InnerEdge, ImageInt oInnerEdges, double PixelDist, int iValueCheck, int iValue) {
+    public static void connectEdgesCloseToBorder(ArbStructure2 OuterEdge, ArbStructure2 InnerEdge, ImageInt oInnerEdges, double PixelDist, int iValueCheck, int iValue, ImageInt internalWhite) {
         for (MatrixEntry meInner : InnerEdge.loPoints) {
             if (oInnerEdges.iaPixels[meInner.i][meInner.j] == iValueCheck) {
-                connectPointToBorder(OuterEdge.loPoints, meInner, PixelDist, iValue, oInnerEdges, null, null);
+                connectPointToBorder(OuterEdge.loPoints, meInner, PixelDist, iValue, oInnerEdges, null, null, internalWhite);
             }
         }
     }
@@ -1626,7 +1333,6 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
             }
         }
         if (connect) {
-//            System.out.println("Connect " + meInner + " with " + toConnect);
             Line oLine = new Line(meInner, toConnect);
             oLine.setLine(oInnerEdges, iValue);
             for (MatrixEntry me : oLine.lmeLine) {
@@ -1643,17 +1349,44 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         return connect;
     }
 
-    public static boolean connectPointToBorder(List<MatrixEntry> OuterEdge, MatrixEntry meInner, double PixelDist, int iValue, ImageInt oInnerEdges, OrderedPair op, List<ArbStructure2> lAS) {
+    public static boolean connectPointToBorder(List<MatrixEntry> OuterEdge, MatrixEntry meInner, double PixelDist, int iValue, ImageInt oInnerEdges, OrderedPair op, List<ArbStructure2> lAS, ImageInt internalWhite) {
         boolean connect = false;
         double dMinDist = Double.MAX_VALUE;
         MatrixEntry toConnect = new MatrixEntry();
-        OrderedPair opOuter = new OrderedPair();
+//        OrderedPair opOuter = new OrderedPair();
         if (op == null && lAS == null) {
             for (MatrixEntry meOuter : OuterEdge) {
                 if (meInner.getNorm(meOuter) < PixelDist) {
-//                    dMinDist = meInner.getNorm(meOuter);
-//                    toConnect = meOuter;
                     Line oLine = new Line(meInner, meOuter);
+                    if (!oLine.checkIfCrossValue(internalWhite, 255)) {
+                        oLine.setLine(oInnerEdges, iValue);
+                        for (MatrixEntry me : oLine.lmeLine) {
+                            oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j), iValue);
+                            oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j + 1), iValue);
+                            oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j - 1), iValue);
+                            oInnerEdges.setPoint(new MatrixEntry(me.i, me.j + 1), iValue);
+                            oInnerEdges.setPoint(new MatrixEntry(me.i, me.j - 1), iValue);
+                            oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j + 1), iValue);
+                            oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j - 1), iValue);
+                            oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j), iValue);
+                        }
+                        connect = true;
+                    }
+                }
+            }
+
+        } else if (op != null && lAS == null) {
+            for (MatrixEntry meOuter : OuterEdge) {
+                if (meInner.getNorm(meOuter) < PixelDist && meInner.getNorm(meOuter) < dMinDist && checkCorrectDirection(op, meInner, meOuter)) {
+                    dMinDist = meInner.getNorm(meOuter);
+                    toConnect = meOuter;
+                    connect = true;
+                }
+            }
+            if (connect) {
+
+                Line oLine = new Line(meInner, toConnect);
+                if (!oLine.checkIfCrossValue(internalWhite, 255)) {
                     oLine.setLine(oInnerEdges, iValue);
                     for (MatrixEntry me : oLine.lmeLine) {
                         oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j), iValue);
@@ -1665,46 +1398,10 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                         oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j - 1), iValue);
                         oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j), iValue);
                     }
-                    connect = true;
-                }
-            }
-//            if (connect) {
-////                System.out.println(op);
-////                System.out.println("Connect with ");
-////                System.out.println(toConnect);
-//                Line oLine = new Line(meInner, toConnect);
-//                oLine.setLine(oInnerEdges, iValue);
-//            }
-
-        } else if (op != null && lAS == null) {
-            for (MatrixEntry meOuter : OuterEdge) {
-                if (meInner.getNorm(meOuter) < PixelDist && meInner.getNorm(meOuter) < dMinDist && checkCorrectDirection(op, meInner, meOuter)) {
-                    dMinDist = meInner.getNorm(meOuter);
-                    toConnect = meOuter;
-//                    Line oLine = new Line(meInner, meOuter);
-//                    oLine.setLine(oInnerEdges, iValue);
-                    connect = true;
-                }
-            }
-            if (connect) {
-//                System.out.println(op);
-//                System.out.println("Connect with ");
-//                System.out.println(toConnect);
-                Line oLine = new Line(meInner, toConnect);
-                oLine.setLine(oInnerEdges, iValue);
-                for (MatrixEntry me : oLine.lmeLine) {
-                    oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j + 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j - 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i, me.j + 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i, me.j - 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j + 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j - 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j), iValue);
-                }
-                for (MatrixEntry me : OuterEdge) {
-                    if (me.getNorm(toConnect) <= 2.0) {
-                        oInnerEdges.setPoint(me, iValue);
+                    for (MatrixEntry me : OuterEdge) {
+                        if (me.getNorm(toConnect) <= 2.0) {
+                            oInnerEdges.setPoint(me, iValue);
+                        }
                     }
                 }
             }
@@ -1714,29 +1411,26 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                 ArbStructure2 as = lAS.get(OuterEdge.indexOf(meOuter));
                 OrderedPair opp = getDerivationOutwardsEndPoints(meOuter, as.loPoints.size() / 2, as.loPoints);
                 if (meInner.getNorm(meOuter) < PixelDist && checkCorrectDirection(op, meInner, meOuter) && checkCorrectDirection(opp, meOuter, meInner) && meInner.getNorm(meOuter) < dMinDist && !meInner.equalsMatrixEntry(meOuter)) {
-                    opOuter = opp;
+//                    opOuter = opp;
                     dMinDist = meInner.getNorm(meOuter);
                     toConnect = meOuter;
-//                    Line oLine = new Line(meInner, meOuter);
-//                    oLine.setLine(oInnerEdges, iValue);
                     connect = true;
                 }
             }
             if (connect) {
-//                System.out.println(op);
-//                System.out.println("Connect with ");
-//                System.out.println(opOuter);
                 Line oLine = new Line(meInner, toConnect);
-                oLine.setLine(oInnerEdges, iValue);
-                for (MatrixEntry me : oLine.lmeLine) {
-                    oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j + 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j - 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i, me.j + 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i, me.j - 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j + 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j - 1), iValue);
-                    oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j), iValue);
+                if (!oLine.checkIfCrossValue(internalWhite, 255)) {
+                    oLine.setLine(oInnerEdges, iValue);
+                    for (MatrixEntry me : oLine.lmeLine) {
+                        oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j), iValue);
+                        oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j + 1), iValue);
+                        oInnerEdges.setPoint(new MatrixEntry(me.i + 1, me.j - 1), iValue);
+                        oInnerEdges.setPoint(new MatrixEntry(me.i, me.j + 1), iValue);
+                        oInnerEdges.setPoint(new MatrixEntry(me.i, me.j - 1), iValue);
+                        oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j + 1), iValue);
+                        oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j - 1), iValue);
+                        oInnerEdges.setPoint(new MatrixEntry(me.i - 1, me.j), iValue);
+                    }
                 }
             }
         }
@@ -1744,7 +1438,7 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         return connect;
     }
 
-    public static void connectInsideEdges(List<ArbStructure2> InnerEdges, ArbStructure2 InnerEdge, ImageInt oInnerEdges, double PixelDist, int iValueCheck, int iValue, ArbStructure2 OuterEdge, ImageInt iGrad) {
+    public static void connectInsideEdges(List<ArbStructure2> InnerEdges, ArbStructure2 InnerEdge, ImageInt oInnerEdges, double PixelDist, int iValueCheck, int iValue, ArbStructure2 OuterEdge, ImageInt iGrad, ImageInt internalWhite) {
         List<MatrixEntry> lIEOther = new ArrayList<>();
         List<MatrixEntry> lIECurrent = new ArrayList<>();
         List<MatrixEntry> lmeRest = new ArrayList<>();
@@ -1792,18 +1486,11 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
             if (oInnerEdges.iaPixels[meInner.i][meInner.j] == iValueCheck && !checkifonborder(meInner, OuterEdge)) {
                 List<MatrixEntry> lmeHelp = new ArrayList<>();
                 lmeHelp.addAll(InnerEdge.loPoints);
-//                System.out.println("Point" + meInner);
                 OrderedPair opDirection = getDerivationOutwardsEndPoints(meInner, lmeHelp.size() / 2, lmeHelp);
-//                System.out.println(opDirection);
-//                connectPointToBorder(OuterEdge.loPoints, meInner, PixelDist, iValue, oInnerEdges, null, null);
                 boolean check = false;
                 if (opDirection.x != 0 || opDirection.y != 0) {
-                    double iCounter = PixelDist * PixelDist;
-//                    List<MatrixEntry> lme = new ArrayList<>();
-//                    while (!check && PixelDist <= iCounter) {
-//                        lme.add(meInner);
                     if (lIEOther.size() > 0) {
-                        check = connectPointToBorder(lIEOther, meInner, PixelDist, iValue, oInnerEdges, opDirection, null);
+                        check = connectPointToBorder(lIEOther, meInner, PixelDist, iValue, oInnerEdges, opDirection, null, internalWhite);
                         if (check) {
 //                            System.out.println("Connected to other Marker");
 //                                break;
@@ -1811,91 +1498,22 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
                     }
 
                     if (!check) {
-                        check = connectPointToBorder(lmeRest, meInner, PixelDist, iValue, oInnerEdges, opDirection, null);
+                        check = connectPointToBorder(lmeRest, meInner, PixelDist, iValue, oInnerEdges, opDirection, null, internalWhite);
                         if (check) {
 //                            System.out.println("Connected to other IE");
 //                                break;
                         }
                     }
                     if (!check) {
-                        check = connectPointToBorder(OuterEdge.loPoints, meInner, PixelDist / 2, iValue, oInnerEdges, opDirection, null);
+                        check = connectPointToBorder(OuterEdge.loPoints, meInner, PixelDist / 2, iValue, oInnerEdges, opDirection, null, internalWhite);
                         if (check) {
 //                            System.out.println("Connected to Border");
-
 //                                break;
                         }
                     }
-//                        PixelDist++;
-//                        meInner = getMaxDeriNeighbor(meInner, iGrad, opDirection);
-//                        iCounter++;
-//                    }
-//                    if (check){
-//                        oInnerEdges.setPoints(lme, iValue);
-//                    }
                 }
             }
         }
-
-//        for (MatrixEntry me : lIEOther) {
-//            oInnerEdges.setPoint(me, iValueCheck);
-//        }
-        //                    if (!check) {
-//                        check = connectPointToBorder(OuterEdge.loPoints, meInner, PixelDist / 2, iValue, oInnerEdges, opDirection, null);
-//                        System.out.println("Connected to Border " + check);
-//                    }
-//                    meInner = getMaxDeriNeighbor(meInner, iGrad, opDirection);
-//                    while (!check && !checkifonborder(meInner, OuterEdge) && !checkifonStruc(meInner, InnerEdges) && meInner != null && iGrad.isInside(meInner.i, meInner.j)) {
-//                        System.out.println("Next step " + meInner);
-//                        //****Connect IE end points with matching outward direction
-//
-//                        meInner = getMaxDeriNeighbor(meInner, iGrad, opDirection);
-//                        oInnerEdges.setPoint(meInner, iValue);
-////                        lmeHelp.add(meInner);
-////                         opDirection = getDerivationOutwardsEndPoints(meInner, lmeHelp.size() / 2, lmeHelp);
-//                        if (opDirection.x == 0 && opDirection.y == 0) {
-//                            System.out.println("Break");
-//                            break;
-//                        }
-//                if (!check && (opDirection.x != 0 || opDirection.y != 0)) {
-//                   
-//                    lmeHelp.add(meMax);
-//                    while (!checkifonborder(meMax, OuterEdge) && !checkifonStruc(meMax, InnerEdges) && meMax != null && iGrad.isInside(meMax.i, meMax.j)) {
-//                       
-//                        
-//                        meMax = getMaxDeriNeighbor(meMax, iGrad, opDirection);
-//                        
-//                        System.out.println(meMax);
-//                        List<MatrixEntry> lme = new ArrayList<>();
-//        List<MatrixEntry> lmeRest = new ArrayList<>();
-//        for (ArbStructure2 InnerEdge1 : InnerEdges) {
-//            for (MatrixEntry meInner : InnerEdge1.loPoints) {
-//                lmeRest.add(meInner);
-//                if (oInnerEdges.iaPixels[meInner.i][meInner.j] == iValueCheck) {
-//                    lme.add(meInner);
-//                }
-//            }
-//
-//        }
-//        for (MatrixEntry meInner : InnerEdge.loPoints) {
-//            if (oInnerEdges.iaPixels[meInner.i][meInner.j] == iValueCheck) {
-//                OrderedPair opDirection = getDerivationOutwardsEndPoints(meInner, InnerEdge.loPoints.size() / 2, InnerEdge.loPoints);
-//                System.out.println(meInner);
-//                boolean check = false;
-//                if (lme.size() > 0) {
-//                    check = connectPointToBorder(lme, meInner, PixelDist, iValue, oInnerEdges, null);
-//                }
-//                if (!check && (opDirection.x != 0 || opDirection.y != 0)) {
-//                    double dCounter = 1;
-//                    MatrixEntry meTest = new MatrixEntry(meInner.i + (int) (dCounter * opDirection.y), meInner.j + (int) (dCounter * opDirection.x));
-//                    boolean bb = OuterEdge.containsPoint(meTest);
-//                    while (bb&&!connectPointToBorder(OuterEdge.loPoints, meTest, PixelDist, iValue, oInnerEdges, null) && !connectPointToBorder(lmeRest, meTest, PixelDist, iValue, oInnerEdges, null)) {
-//                        dCounter += 1;
-//                        Line oLine = new Line(meInner, meTest);
-//                        oLine.setLine(oInnerEdges, iValue);
-//                        meTest = new MatrixEntry(meInner.i + (int) (dCounter * opDirection.y), meInner.j + (int) (dCounter * opDirection.x));
-//                        bb = OuterEdge.containsPoint(meTest);
-//                    }
-//                }           
     }
 
     public static boolean checkifonStruc(MatrixEntry me, List<ArbStructure2> lsAsS) {
@@ -1947,60 +1565,10 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         iCount++;
         dX1 = dX1 / (1.0 * (iCount));
         dY1 = dY1 / (1.0 * (iCount));
-        OrderedPair op1 = new OrderedPair(dX1, dY1);
-//        System.out.println(op1);
 
-        //Directional of End
-//            } else if (oRef.equals(this.oEnd)) {
-//        int iLeft = Math.max(0, lo.size() - iLength);
-//        int iRight = lo.size() - 1;
-//        int iCount1 = 0;
-//        double dX = 0;
-//        double dY = 0;
-//        for (int i = iLeft; i < iRight; i++) {
-//            dX = dX + (lo.get(i + 1).getPosX() - lo.get(i).getPosX());
-//            dY = dY + (lo.get(i + 1).getPosY() - lo.get(i).getPosY());
-//            iCount1++;
-//        }
-//        dX = dX / (1.0 * (iCount1));
-//        dY = dY / (1.0 * (iCount1));
-//        OrderedPair op2 = new OrderedPair(dX, dY);
-//        System.out.println(op2);
-//                return new OrderedPair(dX, dY);
-//            } else {
-//                throw new UnsupportedOperationException("Input is not end or start point");
-//            }
         return new OrderedPair(dX1, dY1);
     }
 
-//    public void repaintWBubbles(ImageInt imgInput) throws UnableToRunException {
-//        BAT_Data data = ((BAT_Controller) StaticReferences.controller).getData();
-//        int height = imgInput.iaPixels.length;
-//        int width = imgInput.iaPixels[0].length;
-//        data.bubbles = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-//
-//        Iterator itBubbles = data.getIteratorBubbles();
-//        while (itBubbles.hasNext()) {
-//            HighlightedPixels hp = (HighlightedPixels) itBubbles.next();
-//            WritableRaster rast = data.bubbles.getRaster();
-//
-//            for (MatrixEntry me : hp.loPoints) {
-//                rast.setPixel(me.j, me.i, new int[]{hp.getColor().getRed(), hp.getColor().getGreen(), hp.getColor().getBlue(), StaticReferencesBAT.alpha});
-//            }
-//        }
-//
-//        BufferedImage newResult = (new BufferedImage(data.blackboard.getWidth(), data.blackboard.getHeight(), BufferedImage.TYPE_INT_ARGB));
-//        Graphics2D g2Result = newResult.createGraphics();
-//        g2Result.drawImage(data.blackboard, 0, 0, null);
-//        g2Result.drawImage(data.bubbles, 0, 0, null);
-//        g2Result.drawImage(data.mask, 0, 0, null);
-//        g2Result.dispose();
-//
-//        ((BAT_Controller) StaticReferences.controller).getData().result = newResult;
-//
-//        imgResult = ((BAT_Controller) StaticReferences.controller).getData().result;
-//        buildLookUp();
-//    }   
     @Override
     public String getType() {
         return name;
