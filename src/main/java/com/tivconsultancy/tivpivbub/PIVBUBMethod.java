@@ -6,13 +6,16 @@
 package com.tivconsultancy.tivpivbub;
 
 import com.tivconsultancy.opentiv.highlevel.protocols.NameSpaceProtocolResults1D;
+import com.tivconsultancy.opentiv.highlevel.protocols.UnableToRunException;
 import static com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EdgeDetections.getThinEdge;
 import com.tivconsultancy.opentiv.imageproc.primitives.ImageInt;
+import com.tivconsultancy.opentiv.math.exceptions.EmptySetException;
 import com.tivconsultancy.opentiv.math.specials.NameObject;
 import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpiv.PIVController;
 import com.tivconsultancy.tivpiv.PIVMethod;
 import com.tivconsultancy.tivpiv.PIVStaticReferences;
+import com.tivconsultancy.tivpiv.data.DataPIV;
 import com.tivconsultancy.tivpivbub.protocols.Prot_ResultDisplayAI_AI_Int;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBBoundaryTracking;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBDataHandling;
@@ -20,6 +23,9 @@ import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBEdges;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBMergeShapeBoundTrack;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
 /**
@@ -44,46 +50,61 @@ public class PIVBUBMethod extends PIVMethod {
 
     @Override
     public void run() throws Exception {
-//        StaticReferences.controller.getViewController(null).update();
-
+        long dStartTime = System.currentTimeMillis();
         try {
             getProtocol("read").run(new Object[]{imageFile1, imageFile2});
             getProtocol("preproc").run(getProtocol("read").getResults());
             Object[] prepr = getProtocol("preproc").getResults();
             getProtocol("mask").run(new Object[]{prepr[0], prepr[1], imageFile1, imageFile2, prepr[2]});
-            PIVStaticReferences.calcIntensityValues(((PIVController) StaticReferences.controller).getDataPIV());
-            if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
-                getProtocol("inter areas").run();
-                getProtocol("calculate").run();
-                getProtocol("display").run();
-            }
-            ImageInt imgInput = ((ImageInt) getProtocol("preproc").getResults()[0]).clone();
-            imgInput.iaPixels = getThinEdge(imgInput.iaPixels, Boolean.FALSE, null, null, 0);
-            ImageInt imgInput2 = ((ImageInt) getProtocol("preproc").getResults()[1]).clone();
-            imgInput2.iaPixels = getThinEdge(imgInput2.iaPixels, Boolean.FALSE, null, null, 0);
-            getProtocol("AIPost").run(new Object[]{getProtocol("preproc").getResults()[0],
-                getProtocol("mask").getResults()[1],
-                getProtocol("mask").getResults()[3],
-                imgInput,
-                getProtocol("preproc").getResults()[1],
-                getProtocol("mask").getResults()[2],
-                getProtocol("mask").getResults()[4],
-                imgInput2});
+//            if (!checkMask((ImageInt) getProtocol("mask").getResults()[1]) && !checkMask((ImageInt) getProtocol("mask").getResults()[2])) {
+                PIVStaticReferences.calcIntensityValues(((PIVController) StaticReferences.controller).getDataPIV());
 
-            if ((boolean) getProtocol("boundtrack").getSettingsValue("BoundTrack")) {
-                getProtocol("result").run();
+                if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
+                    getProtocol("inter areas").run();
+                    getProtocol("calculate").run();
+                    getProtocol("display").run();
+                }
+                if ((boolean) getProtocol("boundtrack").getSettingsValue("Ellipsefit")) {
+                    getProtocol("boundtrack").run();
+                    if ((boolean) getProtocol("boundtrack").getSettingsValue("BoundTrack") || (boolean) getProtocol("boundtrack").getSettingsValue("SimpleTracking")) {
+                        getProtocol("result").run();
+                        if ((boolean) getProtocol("system").getSettingsValue("tivGUI_dataDraw")) {
+                            getProtocol("AIPost").run();
+                        }
+                    }
+                }
                 getProtocol("data").run();
-            }
-
-            for (NameSpaceProtocolResults1D e : getProtocol("data").get1DResultsNames()) {
-                StaticReferences.controller.get1DResults().setResult(e.toString(), getProtocol("data").getOverTimesResult(e));
-            }
-            StaticReferences.controller.getPlotAbleOverTimeResults().refreshObjects();
-
-        } catch (Exception ex) {
-            throw ex;
+                for (NameSpaceProtocolResults1D e : getProtocol("data").get1DResultsNames()) {
+                    StaticReferences.controller.get1DResults().setResult(e.toString(), getProtocol("data").getOverTimesResult(e));
+                }
+                StaticReferences.controller.getPlotAbleOverTimeResults().refreshObjects();
+//            }
+            System.out.println(System.currentTimeMillis() - dStartTime);
+        } catch (UnableToRunException ex) {
+            StaticReferences.getlog().log(Level.SEVERE, "Wrong input", ex);
         }
 
+    }
+
+    public static boolean checkMask(ImageInt img) {
+        int iTopCounter = 0;
+        int iBotCounter = 0;
+        int iWidth = img.iaPixels[0].length;
+        for (int i = 0; i < iWidth; i++) {
+            if (img.iaPixels[0][i] > 0) {
+                iTopCounter++;
+            }
+            if (img.iaPixels[img.iaPixels.length - 1][i] > 0) {
+                iBotCounter++;
+            }
+        }
+        boolean bTopError = iTopCounter >= 7 * iWidth / 8 ? true : false;
+        boolean bBotError = iBotCounter >= 7 * iWidth / 8 ? true : false;
+        if ((bTopError && !bBotError) || (!bTopError && bBotError)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
 }

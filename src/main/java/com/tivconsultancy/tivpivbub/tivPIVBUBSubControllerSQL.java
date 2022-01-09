@@ -70,16 +70,19 @@ public class tivPIVBUBSubControllerSQL extends tivPIVSubControllerSQL {
     }
 
     public String getinsertEntryBUB(sqlEntryBUB e) {
-        String sqlStatement = "INSERT INTO flowdata.bubvelo (experiment, settings,timestampexp, posx, posy, posz, velox, veloy, majoraxis, minoraxis, orientation,greyderivative,burstnumber) "
+        String sqlStatement = "INSERT INTO flowdata.bubvelo (experiment, settings,timestampexp, posx, posy, posz, velox, veloy, majoraxis, minoraxis, orientation,greyderivative) "
                 + "VALUES('" + e.experiment + "', '" + e.settingsName + "', " + t + ", " + e.posX + ", " + e.posY + ", " + e.posZ + ", " + e.vX + ", " + e.vY+ ", "  + e.majorAxis 
-                + ", " + e.minorAxis + ", " + e.orientation+ ", "+e.greyderivative+ ", " + e.burstnumber + ")";
+                + ", " + e.minorAxis + ", " + e.orientation+ ", "+e.greyderivative+")";
         return sqlStatement;
     }
 
     public String getupserEntryBUB(sqlEntryBUB e) {
-        String sqlStatement = "INSERT INTO flowdata.bubvelo (experiment, settings, timestampexp, posx, posy, posz, velox, veloy, majoraxis, minoraxis, orientation,greyderivative,burstnumber) "
+        if (Double.isNaN(e.majorAxis)||Double.isNaN(e.minorAxis)){
+            throw new IllegalArgumentException("NaN major/minor axis");
+        }
+        String sqlStatement = "INSERT INTO flowdata.bubvelo (experiment, settings, timestampexp, posx, posy, posz, velox, veloy, majoraxis, minoraxis, orientation,greyderivative) "
                 + "VALUES('" + e.experiment + "', '" + e.settingsName + "', " + t + ", " + e.posX + ", " + e.posY + ", " + e.posZ + ", " + e.vX + ", " + e.vY + ", " + e.majorAxis 
-                + ", " + e.minorAxis + ", " + e.orientation+ ", "+e.greyderivative+ ", " + e.burstnumber + ")"
+                + ", " + e.minorAxis + ", " + e.orientation+ ", "+e.greyderivative+ ")"
                 + "ON CONFLICT (experiment, settings, timestampexp, posx, posy, posz) DO UPDATE SET "
                 + "experiment = EXCLUDED.experiment, "
                 + "settings = EXCLUDED.settings,"
@@ -92,8 +95,7 @@ public class tivPIVBUBSubControllerSQL extends tivPIVSubControllerSQL {
                 + "majoraxis = EXCLUDED.majoraxis, "
                 + "minoraxis = EXCLUDED.minoraxis, "
                 + "orientation = EXCLUDED.orientation, "               
-                + "greyderivative = EXCLUDED.greyderivative, "
-                + "burstnumber = EXCLUDED.burstnumber";
+                + "greyderivative = EXCLUDED.greyderivative";
         return sqlStatement;
     }
 
@@ -110,10 +112,10 @@ public class tivPIVBUBSubControllerSQL extends tivPIVSubControllerSQL {
         double minorAxis;
         double orientation;
         int greyderivative;
-        int burstnumber;
+//        int burstnumber;
 
         public sqlEntryBUB(String experiment, String settingsName, double posX, double posY, double posZ, double vX, double vY, double majorAxis, double minorAxis, 
-                double orientation,int greyderivative,int burstnumber) {
+                double orientation,int greyderivative) {
             this.experiment = experiment;
             this.settingsName = settingsName;
             this.posX = posX;
@@ -125,7 +127,7 @@ public class tivPIVBUBSubControllerSQL extends tivPIVSubControllerSQL {
             this.minorAxis = minorAxis;
             this.orientation = orientation;
             this.greyderivative=greyderivative;
-            this.burstnumber = burstnumber;
+//            this.burstnumber = burstnumber;
         }
 
     }

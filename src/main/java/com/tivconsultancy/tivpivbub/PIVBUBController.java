@@ -40,8 +40,16 @@ public class PIVBUBController extends PIVController {
     
     @Override
     public void startNewIndexStep() {
+//        DataBUB databaseBUBPrevStep = new DataBUB(0);
+//        if (this.databaseBUB1Step.results_BT!=null){
+//            databaseBUBPrevStep.results_BT=this.databaseBUB1Step.results_BT;
+//            System.out.println("Yeah!");
+//        } else {
+//            System.out.println("NOOO");
+//        }
         super.startNewIndexStep();
         databaseBUB1Step = new DataBUB(getSelecedIndex());
+//        databaseBUB1Step.results_EFit2=databaseBUBPrevStep.results_EFit2;
     }
     
 }

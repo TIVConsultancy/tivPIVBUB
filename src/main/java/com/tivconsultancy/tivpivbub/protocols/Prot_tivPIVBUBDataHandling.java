@@ -81,9 +81,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
     @Override
     public void run(Object... input) throws UnableToRunException {
 
-        DataPIV dataPIV = ((PIVBUBController) StaticReferences.controller).getDataPIV();
         DataBUB dataBUB = ((PIVBUBController) StaticReferences.controller).getDataBUB();
-
         String expName = ((PIVMethod) StaticReferences.controller.getCurrentMethod()).experimentSQL;
         if (expName == null) {
             expName = getSettingsValue("sql_experimentident").toString();
@@ -91,52 +89,79 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
 
         String settingsPIVNamePIV = getSettingsValue("sql_evalsettingspiv").toString();
         String settingsPIVNameBUB = getSettingsValue("sql_evalsettingsbub").toString();
+        PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
 
         int refPX_X = Integer.valueOf(getSettingsValue("data_refposPXX").toString());
+        if ((boolean) controller.getCurrentMethod().getProtocol("preproc").getSettingsValue("BcutxLeft")) {
+            int iCutLeft = Integer.valueOf(controller.getCurrentMethod().getProtocol("preproc").getSettingsValue("cutxLeft").toString());
+            refPX_X = refPX_X - iCutLeft;
+        }
         double refM_X = Double.valueOf(getSettingsValue("data_refposMX").toString());
         int refPX_Y = Integer.valueOf(getSettingsValue("data_refposPXY").toString());
+        if ((boolean) controller.getCurrentMethod().getProtocol("preproc").getSettingsValue("BcutyTop")) {
+            int iCutTop = Integer.valueOf(controller.getCurrentMethod().getProtocol("preproc").getSettingsValue("cutyTop").toString());
+            refPX_Y = refPX_Y - iCutTop;
+        }
         double refM_Y = Double.valueOf(getSettingsValue("data_refposMY").toString());
         double refM_Z = Double.valueOf(getSettingsValue("data_refposMZ").toString());
         double fps = Integer.valueOf(getSettingsValue("data_FPS").toString());
         boolean bUPSERT = Boolean.valueOf(getSettingsValue("sql_upsert").toString());
         tivPIVBUBSubControllerSQL sql_Control = (tivPIVBUBSubControllerSQL) StaticReferences.controller.getSQLControler(null);
         sql_Control.setTimeStamp(getTimeStamp());
-        int iBurstNumber = getBurstNumber();
+//        int iBurstNumber = getBurstNumber();
         double dResolution = Double.valueOf(getSettingsValue("data_Resolution").toString()) / 1000000.0;
         String sExportPath = getSettingsValue("data_csvExportPath").toString();
 
         try {
             if (Boolean.valueOf(this.getSettingsValue("sql_activation").toString())) {
-                        System.out.println("Uploading Data to " + expName);
+                System.out.println("Uploading Data to " + expName);
 //                dResolution = sql_Control.getResolution(expName) / 1000000.0;
 //                double dResolution = sql_Control.getResolution(expName) / 100000.0;
-                List<sqlEntryPIV> entriesPIV = new ArrayList<>();
-                for (Vector v : dataPIV.oGrid.getVectors()) {
-                    double dPosX = (v.getPosX() - refPX_X) * dResolution + refM_X;
-                    double dPosY = refM_Y - (v.getPosY() - refPX_Y) * dResolution;
-                    double dPosZ = refM_Z;
-                    double dVX = v.getX() * dResolution * fps;
-                    double dVY = -1.0 * v.getY() * dResolution * fps;
-                    entriesPIV.add(new sqlEntryPIV(expName, settingsPIVNamePIV, dPosX, dPosY, dPosZ, dVX, dVY, iBurstNumber));
+                if ((boolean) controller.getCurrentMethod().getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
+                    DataPIV dataPIV = ((PIVBUBController) StaticReferences.controller).getDataPIV();
+                    List<sqlEntryPIV> entriesPIV = new ArrayList<>();
+                    for (Vector v : dataPIV.oGrid.getVectors()) {
+                        double dPosX = (v.getPosX() - refPX_X) * dResolution + refM_X;
+                        double dPosY = refM_Y - (v.getPosY() - refPX_Y) * dResolution;
+                        double dPosZ = refM_Z;
+                        double dVX = v.getX() * dResolution * fps;
+                        double dVY = -1.0 * v.getY() * dResolution * fps;
+                        entriesPIV.add(new sqlEntryPIV(expName, settingsPIVNamePIV, dPosX, dPosY, dPosZ, dVX, dVY));
+                    }
+                    if (bUPSERT) {
+                        sql_Control.upsertEntry(entriesPIV);
+                    } else {
+                        sql_Control.insertEntry(entriesPIV);
+                    }
                 }
-                if (bUPSERT) {
-                    sql_Control.upsertEntry(entriesPIV);
-                } else {
-                    sql_Control.insertEntry(entriesPIV);
-                }
-
                 List<sqlEntryBUB> entriesBUB = new ArrayList<>();
-                for (Map.Entry<Circle, VelocityVec> m : dataBUB.results.entrySet()) {
-                    double dPosX = (m.getValue().getPosX() - refPX_X) * dResolution + refM_X;
-                    double dPosY = refM_Y - (m.getValue().getPosY() - refPX_Y) * dResolution;
-                    double dPosZ = refM_Z;
-                    double dVX = m.getValue().getX() * dResolution * fps;
-                    double dVY = -1.0 * m.getValue().getY() * dResolution * fps;
-                    double majorAxis = Math.max(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
-                    double minorAxis = Math.min(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
-                    double orientaton = m.getKey().dAngle;
-                    int AverageGreyDeri = (int) (double) m.getKey().dAvergeGreyDerivative;
-                    entriesBUB.add(new sqlEntryBUB(expName, settingsPIVNameBUB, dPosX, dPosY, dPosZ, dVX, dVY, majorAxis, minorAxis, orientaton, AverageGreyDeri, iBurstNumber));
+                if ((boolean) controller.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("BoundTrack")||(boolean) controller.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("SimpleTracking")) {
+                    for (Map.Entry<Circle, VelocityVec> m : dataBUB.results.entrySet()) {
+                        double dPosX = (m.getValue().getPosX() - refPX_X) * dResolution + refM_X;
+                        double dPosY = refM_Y - (m.getValue().getPosY() - refPX_Y) * dResolution;
+                        double dPosZ = refM_Z;
+                        double dVX = m.getValue().getX() * dResolution * fps;
+                        double dVY = -1.0 * m.getValue().getY() * dResolution * fps;
+                        double majorAxis = Math.max(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
+                        double minorAxis = Math.min(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
+                        double orientaton = m.getKey().dAngle;
+                        int AverageGreyDeri = (int) (double) m.getKey().dAvergeGreyDerivative;
+                        entriesBUB.add(new sqlEntryBUB(expName, settingsPIVNameBUB, dPosX, dPosY, dPosZ, dVX, dVY, majorAxis, minorAxis, orientaton, AverageGreyDeri));
+                    }
+                } else {
+                    for (Circle m : dataBUB.results_EFit.loCircles) {
+                        double dPosX = (m.meCenter.j - refPX_X) * dResolution + refM_X;
+                        double dPosY = refM_Y - (m.meCenter.i - refPX_Y) * dResolution;
+                        double dPosZ = refM_Z;
+                        double dVX = 0.0;
+                        double dVY = 0.0;
+                        double majorAxis = Math.max(m.dDiameterI, m.dDiameterJ) * dResolution;
+                        double minorAxis = Math.min(m.dDiameterI, m.dDiameterJ) * dResolution;
+                        double orientaton = m.dAngle;
+                        int AverageGreyDeri = (int) (double) m.dAvergeGreyDerivative;
+                        entriesBUB.add(new sqlEntryBUB(expName, settingsPIVNameBUB, dPosX, dPosY, dPosZ, dVX, dVY, majorAxis, minorAxis, orientaton, AverageGreyDeri));
+
+                    }
                 }
                 if (bUPSERT) {
                     sql_Control.upsertEntryBUB(entriesBUB);
@@ -166,58 +191,85 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
 //                mache export csv
                 List<String[]> lsOut = new ArrayList<>();
                 int time = (int) getTimeStamp();
-                for (Vector v : dataPIV.oGrid.getVectors()) {
-                    double dPosX = (v.getPosX() - refPX_X) * dResolution + refM_X;
-                    double dPosY = (v.getPosY() - refPX_Y) * dResolution + refM_Y;
-                    double dPosYPx = v.getPosY();
-                    double dPosXPx = v.getPosX();
-                    double dPosZ = refM_Z;
-                    double dVX = v.getX() * dResolution * fps;
-                    double dVY = -1.0 * v.getY() * dResolution * fps;
-                    String[] sOut = new String[7];
-                    sOut[0] = String.valueOf(dPosX);
-                    sOut[1] = String.valueOf(dPosY);
-                    sOut[2] = String.valueOf(dPosZ);
-                    sOut[3] = String.valueOf(dVX);
-                    sOut[4] = String.valueOf(dVY);
-                    sOut[5] = String.valueOf(dPosXPx);
-                    sOut[6] = String.valueOf(dPosYPx);
-                    lsOut.add(sOut);
+                if ((boolean) controller.getCurrentMethod().getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
+                    DataPIV dataPIV = ((PIVBUBController) StaticReferences.controller).getDataPIV();
+                    for (Vector v : dataPIV.oGrid.getVectors()) {
+                        double dPosX = (v.getPosX() - refPX_X) * dResolution + refM_X;
+                        double dPosY = (v.getPosY() - refPX_Y) * dResolution + refM_Y;
+                        double dPosYPx = v.getPosY();
+                        double dPosXPx = v.getPosX();
+                        double dPosZ = refM_Z;
+                        double dVX = v.getX() * dResolution * fps;
+                        double dVY = -1.0 * v.getY() * dResolution * fps;
+                        String[] sOut = new String[7];
+                        sOut[0] = String.valueOf(dPosX);
+                        sOut[1] = String.valueOf(dPosY);
+                        sOut[2] = String.valueOf(dPosZ);
+                        sOut[3] = String.valueOf(dVX);
+                        sOut[4] = String.valueOf(dVY);
+                        sOut[5] = String.valueOf(dPosXPx);
+                        sOut[6] = String.valueOf(dPosYPx);
+                        lsOut.add(sOut);
+                    }
+                    lsOut.add(0, new String[]{"posx", "posy", "velox", "veloy", "posxPx", "posyPx"});
+                    Writer oWrite = new Writer(sExportPath + System.getProperty("file.separator") + "LiqVelo" + time + ".csv");
+                    oWrite.writels(lsOut, ",");
+                    lsOut.clear();
                 }
-                lsOut.add(0, new String[]{"posx", "posy", "velox", "veloy", "posxPx", "posyPx"});
-                Writer oWrite = new Writer(sExportPath + System.getProperty("file.separator") + "LiqVelo" + time + ".csv");
-                oWrite.writels(lsOut, ";");
-                lsOut.clear();
-                for (Map.Entry<Circle, VelocityVec> m : dataBUB.results.entrySet()) {
-                    double dPosX = (m.getValue().getPosX() - refPX_X) * dResolution + refM_X;
-                    double dPosY = (m.getValue().getPosY() - refPX_Y) * dResolution + refM_Y;
+                if ((boolean) controller.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("BoundTrack")) {
+                    for (Map.Entry<Circle, VelocityVec> m : dataBUB.results.entrySet()) {
+                        double dPosX = (m.getValue().getPosX() - refPX_X) * dResolution + refM_X;
+                        double dPosY = (m.getValue().getPosY() - refPX_Y) * dResolution + refM_Y;
+                        double dPosZ = refM_Z;
+                        double dVX = m.getValue().getX() * dResolution * fps;
+                        double dVY = -1.0 * m.getValue().getY() * dResolution * fps;
+                        double majorAxis = Math.max(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
+                        double minorAxis = Math.min(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
+                        double orientaton = m.getKey().dAngle;
+                        String[] sOut = new String[9];
+                        sOut[0] = String.valueOf(dPosX);
+                        sOut[1] = String.valueOf(dPosY);
+                        sOut[2] = String.valueOf(dPosZ);
+                        sOut[3] = String.valueOf(dVX);
+                        sOut[4] = String.valueOf(dVY);
+                        sOut[5] = String.valueOf(majorAxis);
+                        sOut[6] = String.valueOf(minorAxis);
+                        sOut[7] = String.valueOf(orientaton);
+                        sOut[8] = String.valueOf(Math.pow(8 * (majorAxis / 2.0) * (majorAxis / 2.0) * (minorAxis / 2.0), 1.0 / 3.0));
+                        lsOut.add(sOut);
+                    }
+                } else {
+                    for (Circle m : dataBUB.results_EFit.loCircles) {
+                        double dPosX = (m.meCenter.j - refPX_X) * dResolution + refM_X;
+                        double dPosY = refM_Y - (m.meCenter.i - refPX_Y) * dResolution;
+                        double dPosZ = refM_Z;
+                        double dVX = 0.0;
+                        double dVY = 0.0;
+                        double majorAxis = Math.max(m.dDiameterI, m.dDiameterJ) * dResolution;
+                        double minorAxis = Math.min(m.dDiameterI, m.dDiameterJ) * dResolution;
+                        double orientaton = m.dAngle;
+                        String[] sOut = new String[9];
+                        sOut[0] = String.valueOf(dPosX);
+                        sOut[1] = String.valueOf(dPosY);
+                        sOut[2] = String.valueOf(dPosZ);
+                        sOut[3] = String.valueOf(dVX);
+                        sOut[4] = String.valueOf(dVY);
+                        sOut[5] = String.valueOf(majorAxis);
+                        sOut[6] = String.valueOf(minorAxis);
+                        sOut[7] = String.valueOf(orientaton);
+                        sOut[8] = String.valueOf(Math.pow(8 * (majorAxis / 2.0) * (majorAxis / 2.0) * (minorAxis / 2.0), 1.0 / 3.0));
+                        lsOut.add(sOut);
 
-                    double dPosZ = refM_Z;
-                    double dVX = m.getValue().getX() * dResolution * fps;
-                    double dVY = -1.0 * m.getValue().getY() * dResolution * fps;
-                    double majorAxis = Math.max(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
-                    double minorAxis = Math.min(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
-                    double orientaton = m.getKey().dAngle;
-                    String[] sOut = new String[9];
-                    sOut[0] = String.valueOf(dPosX);
-                    sOut[1] = String.valueOf(dPosY);
-                    sOut[2] = String.valueOf(dPosZ);
-                    sOut[3] = String.valueOf(dVX);
-                    sOut[4] = String.valueOf(dVY);
-                    sOut[5] = String.valueOf(majorAxis);
-                    sOut[6] = String.valueOf(minorAxis);
-                    sOut[7] = String.valueOf(orientaton);
-                    sOut[8] = String.valueOf(Math.pow(8 * (majorAxis / 2.0) * (majorAxis / 2.0) * (minorAxis / 2.0), 1.0 / 3.0));
-                    lsOut.add(sOut);
+                    }
                 }
-                lsOut.add(0, new String[]{"posx", "posy", "velox", "veloy", "major", "minor", "orientation", "Diameter"});
+                lsOut.add(0, new String[]{"posx", "posy", "posz", "velox", "veloy", "major", "minor", "orientation", "Diameter"});
                 Writer oWrite2 = new Writer(sExportPath + System.getProperty("file.separator") + "BubVelo" + time + ".csv");
-                oWrite2.writels(lsOut, ";");
+                oWrite2.writels(lsOut, ",");
 
             }
         } catch (Exception e) {
         }
-        PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
+//        PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
         if ((boolean) controller.getCurrentMethod().getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
             run1DResults(dResolution, fps);
         }
@@ -296,9 +348,10 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
 
     private int getBurstNumber() {
         int index = ((PIVController) StaticReferences.controller).getSelecedIndex();
-        DataPIV data = ((PIVController) StaticReferences.controller).getDataPIV();
-        if (data.iBurstLength > 1) {
-            return (index / data.iBurstLength);
+//        DataPIV data = ((PIVController) StaticReferences.controller).getDataPIV();
+        int iBurstLength = (Integer) ((PIVController) StaticReferences.controller).getCurrentMethod().getProtocol("calculate").getSettingsValue("tivPIVBurstLength");
+        if (iBurstLength > 1) {
+            return (index / iBurstLength);
         } else {
             return 0;
         }
@@ -314,7 +367,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
             double dRestTime = (index - (((int) (index / data.iBurstLength)) * data.iBurstLength)) * (1.0 / fps);
             System.out.println("Burst Time" + dBurstTime);
             System.out.println("Rest Time" + dRestTime);
-            System.out.println("Burst Number " + getBurstNumber());
+//            System.out.println("Burst Number " + getBurstNumber());
             return dBurstTime + dRestTime;
         } else {
             return index * (1.0 / fps);
