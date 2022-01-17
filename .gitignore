@@ -2,3 +2,4 @@
 !/.gitignore
 build/
 settings.gradle
+workspace.code-workspace

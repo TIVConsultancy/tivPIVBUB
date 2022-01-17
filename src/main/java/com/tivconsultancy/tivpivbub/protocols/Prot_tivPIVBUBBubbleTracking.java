@@ -53,11 +53,11 @@ import java.util.logging.Logger;
  *
  * @author TZ ThomasZiegenhein@TIVConsultancy.com +1 480 494 7254
  */
-public class Prot_tivPIVBUBBoundaryTracking extends Protocol {
+public class Prot_tivPIVBUBBubbleTracking extends Protocol {
 
     private static final long serialVersionUID = 7641291376662282578L;
 
-    String name = "Boundary Tracking";
+    String name = "Bubble Tracking";
 
     BufferedImage VectorDisplay;
     ImageInt edgesB1;
@@ -65,7 +65,7 @@ public class Prot_tivPIVBUBBoundaryTracking extends Protocol {
     ImageInt contours1;
     ImageInt contours2;
 
-    public Prot_tivPIVBUBBoundaryTracking() {
+    public Prot_tivPIVBUBBubbleTracking() {
         contours1 = new ImageInt(50, 50, 0);
         contours2 = new ImageInt(50, 50, 0);
         edgesB1 = new ImageInt(50, 50, 0);
@@ -105,80 +105,87 @@ public class Prot_tivPIVBUBBoundaryTracking extends Protocol {
 
     @Override
     public void run(Object... input) throws UnableToRunException {
-
         PIVBUBController control = ((PIVBUBController) StaticReferences.controller);
-        try {
-            if ((boolean) control.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("SimpleTracking") && (boolean) control.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("BoundTrack")) {
-                throw new java.lang.RuntimeException("SimpleTracking and BoundTrack not support. Please choose one.");
-            }
-
-            ImageInt blackboard = (ImageInt) control.getCurrentMethod().getProtocol("preproc").getResults()[0];
-            ImageGrid oGrid = new ImageGrid(blackboard.iaPixels);
-            ImageInt grad = new ImageInt(blackboard.iaPixels.length, blackboard.iaPixels[0].length);
-            grad.iaPixels = getThinEdge(blackboard.iaPixels, Boolean.FALSE, null, null, 0);
-
-            ImageInt iMask1 = (ImageInt) control.getCurrentMethod().getProtocol("mask").getResults()[1];
-            ImageInt iMask2 = (ImageInt) control.getCurrentMethod().getProtocol("mask").getResults()[2];
-
-            List<CPXTr> lCPXTr1 = getBoundaries(iMask1);
-            List<CPXTr> lCPXTr2 = getBoundaries(iMask2);
-
-            HashMap<CPXTr, Circle> map = new HashMap<CPXTr, Circle>();
-            List<Circle> lc = new ArrayList<>();
-            for (CPXTr CPX : lCPXTr1) {
-                List<MatrixEntry> lme = ImagePoint.getMEList(CPX.lo);
-                Circle cc = EllipseDetection.EllipseFit(lme);
-                if (cc != null) {
-                    double dGreyDerivative = 0.0;
-                    for (MatrixEntry me : lme) {
-                        dGreyDerivative += getMaxDeriNeighbor(me, grad);
-                    }
-                    cc.dAvergeGreyDerivative = dGreyDerivative / (double) lme.size();
-                    map.put(CPX, cc);
-                    lc.add(cc);
-                }
-            }
-
-            System.out.println(lCPXTr1.size() + " to " + lCPXTr2.size());
-
-            if ((boolean) control.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("SimpleTracking")) {
-                //******Works
-                /*List<Circle> lc2 = new ArrayList<>();
-                for (CPXTr CPX : lCPXTr2) {
-                    List<MatrixEntry> lme = ImagePoint.getMEList(CPX.lo);
-                    Circle cc = EllipseDetection.EllipseFit(lme);
-                    if (cc != null) {
-                        lc2.add(cc);
-                    }
-                }
-                Map<CPXTr, VelocityVec> oVelocityVectors = simpleTracking(lc2, control, map);
-                control.getDataBUB().results_BT = new ReturnContainerBoundaryTracking(oVelocityVectors, lCPXTr1, lCPXTr2);
-                 */
-                //****
-                lCPXTr1 = getStrucs(iMask1);
-                lCPXTr2 = getStrucs(iMask2);
-                Map<CPXTr, VelocityVec> oVelocityVectors = simpleTrackingStructs(lCPXTr1, lCPXTr2, control);
-                control.getDataBUB().results_BT = new ReturnContainerBoundaryTracking(oVelocityVectors, lCPXTr1, lCPXTr2);
-            }
-
-            if ((boolean) control.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("BoundTrack")) {
-                control.getDataBUB().results_BT = BoundTrackZiegenhein_2018.runBoundTrack(this, lCPXTr1, lCPXTr2, oGrid, map);
-            }
-
-            control.getDataBUB().results_EFit = new OpenTIV_Edges.ReturnCotnainer_EllipseFit(lc, blackboard);
-            control.getDataBUB().iaEdgesFirst = blackboard.iaPixels;
-            if ((boolean) control.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("SimpleTracking") || (boolean) control.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("BoundTrack")) {
-                List<VelocityVec> vecs = new ArrayList<>(control.getDataBUB().results_BT.velocityVectors.values());
-                Colorbar oColBar = new Colorbar.StartEndLinearColorBar(0.0, getMaxVecLength(vecs).dEnum * 1.1, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
-                VectorDisplay = PaintVectors.paintOnImage(vecs, oColBar, blackboard.getBuffImage(), null, getAutoStretchFactor(vecs, blackboard.iaPixels.length / 10.0, 1.0));
-            }
-
-        } catch (EmptySetException ex) {
-            StaticReferences.getlog().log(Level.SEVERE, "Unable to fit ellipses", ex);
-        } catch (IOException ex) {
-            Logger.getLogger(Prot_tivPIVBUBBoundaryTracking.class.getName()).log(Level.SEVERE, null, ex);
+        String sMethod = (String) control.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("Tracking");
+        
+        if (sMethod=="Boundary Tracking"){
+            System.out.println("Starting Boundary Tracking");
+            
+        } else {
+            System.out.println("Starting NearestNeighbor Tracking");
+            
         }
-
+//        try {
+//            if ((boolean) control.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("SimpleTracking") && (boolean) control.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("BoundTrack")) {
+//                throw new java.lang.RuntimeException("SimpleTracking and BoundTrack not support. Please choose one.");
+//            }
+//
+//            ImageInt blackboard = (ImageInt) control.getCurrentMethod().getProtocol("preproc").getResults()[0];
+//            ImageGrid oGrid = new ImageGrid(blackboard.iaPixels);
+//            ImageInt grad = new ImageInt(blackboard.iaPixels.length, blackboard.iaPixels[0].length);
+//            grad.iaPixels = getThinEdge(blackboard.iaPixels, Boolean.FALSE, null, null, 0);
+//
+//            ImageInt iMask1 = (ImageInt) control.getCurrentMethod().getProtocol("mask").getResults()[1];
+//            ImageInt iMask2 = (ImageInt) control.getCurrentMethod().getProtocol("mask").getResults()[2];
+//
+//            List<CPXTr> lCPXTr1 = getBoundaries(iMask1);
+//            List<CPXTr> lCPXTr2 = getBoundaries(iMask2);
+//
+//            HashMap<CPXTr, Circle> map = new HashMap<CPXTr, Circle>();
+//            List<Circle> lc = new ArrayList<>();
+//            for (CPXTr CPX : lCPXTr1) {
+//                List<MatrixEntry> lme = ImagePoint.getMEList(CPX.lo);
+//                Circle cc = EllipseDetection.EllipseFit(lme);
+//                if (cc != null) {
+//                    double dGreyDerivative = 0.0;
+//                    for (MatrixEntry me : lme) {
+//                        dGreyDerivative += getMaxDeriNeighbor(me, grad);
+//                    }
+//                    cc.dAvergeGreyDerivative = dGreyDerivative / (double) lme.size();
+//                    map.put(CPX, cc);
+//                    lc.add(cc);
+//                }
+//            }
+//
+//            System.out.println(lCPXTr1.size() + " to " + lCPXTr2.size());
+//
+//            if ((boolean) control.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("SimpleTracking")) {
+//                //******Works
+//                /*List<Circle> lc2 = new ArrayList<>();
+//                for (CPXTr CPX : lCPXTr2) {
+//                    List<MatrixEntry> lme = ImagePoint.getMEList(CPX.lo);
+//                    Circle cc = EllipseDetection.EllipseFit(lme);
+//                    if (cc != null) {
+//                        lc2.add(cc);
+//                    }
+//                }
+//                Map<CPXTr, VelocityVec> oVelocityVectors = simpleTracking(lc2, control, map);
+//                control.getDataBUB().results_BT = new ReturnContainerBoundaryTracking(oVelocityVectors, lCPXTr1, lCPXTr2);
+//                 */
+//                //****
+//                lCPXTr1 = getStrucs(iMask1);
+//                lCPXTr2 = getStrucs(iMask2);
+//                Map<CPXTr, VelocityVec> oVelocityVectors = simpleTrackingStructs(lCPXTr1, lCPXTr2, control);
+//                control.getDataBUB().results_BT = new ReturnContainerBoundaryTracking(oVelocityVectors, lCPXTr1, lCPXTr2);
+//            }
+//
+//            if ((boolean) control.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BoundTrack")) {
+//                control.getDataBUB().results_BT = BoundTrackZiegenhein_2018.runBoundTrack(this, lCPXTr1, lCPXTr2, oGrid, map);
+//            }
+//
+//            control.getDataBUB().results_EFit = new OpenTIV_Edges.ReturnContainer_EllipseFit(lc, blackboard);
+//            control.getDataBUB().iaEdgesFirst = blackboard.iaPixels;
+//            if ((boolean) control.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("SimpleTracking") || (boolean) control.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BoundTrack")) {
+//                List<VelocityVec> vecs = new ArrayList<>(control.getDataBUB().results_BT.velocityVectors.values());
+//                Colorbar oColBar = new Colorbar.StartEndLinearColorBar(0.0, getMaxVecLength(vecs).dEnum * 1.1, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
+//                VectorDisplay = PaintVectors.paintOnImage(vecs, oColBar, blackboard.getBuffImage(), null, getAutoStretchFactor(vecs, blackboard.iaPixels.length / 10.0, 1.0));
+//            }
+//
+//        } catch (EmptySetException ex) {
+//            StaticReferences.getlog().log(Level.SEVERE, "Unable to fit ellipses", ex);
+//        } catch (IOException ex) {
+//            Logger.getLogger(Prot_tivPIVBUBBubbleTracking.class.getName()).log(Level.SEVERE, null, ex);
+//        }
         buildLookUp();
 
     }
@@ -483,6 +490,8 @@ public class Prot_tivPIVBUBBoundaryTracking extends Protocol {
         ls.add(new SettingObject("Colorbar", "tivBUBColBar", "Pink", SettingObject.SettingsType.String));
         ls.add(new SettingObject("Colorbar", "tivBUBColBar", "WarmToColdRainbow", SettingObject.SettingsType.String));
         ls.add(new SettingObject("Colorbar", "tivBUBColBar", "darkGreen", SettingObject.SettingsType.String));
+        ls.add(new SettingObject("Bubble Tracking", "Tracking", "Boundary Tracking", SettingObject.SettingsType.String));
+        ls.add(new SettingObject("Bubble Tracking", "Tracking", "NearestNeighbor Tracking", SettingObject.SettingsType.String));
         return ls;
     }
 
@@ -518,14 +527,17 @@ public class Prot_tivPIVBUBBoundaryTracking extends Protocol {
         this.loSettings.add(new SettingObject("Search Radius Y Min", "BUBSRadiusYMinus", 5, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Search Radius X Max", "BUBSRadiusXPlus", 20, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Search Radius X Min", "BUBSRadiusXMinus", -20, SettingObject.SettingsType.Integer));
-        this.loSettings.add(new SettingObject("Ellipse Fitting", "Ellipsefit", true, SettingObject.SettingsType.Boolean));
-        this.loSettings.add(new SettingObject("Boundary Tracking", "BoundTrack", false, SettingObject.SettingsType.Boolean));
-        this.loSettings.add(new SettingObject("Simple Tracking", "SimpleTracking", false, SettingObject.SettingsType.Boolean));
+        this.loSettings.add(new SettingObject("Bubble Tracking", "Tracking", "Disable Tracking", SettingObject.SettingsType.String));
+//        this.loSettings.add(new SettingObject("Boundary Tracking", "BoundTrack", false, SettingObject.SettingsType.Boolean));
+//        this.loSettings.add(new SettingObject("NearestNeighbor Tracking", "SimpleTracking", false, SettingObject.SettingsType.Boolean));
     }
 
     @Override
     public void buildClusters() {
-
+        SettingsCluster boundTrack = new SettingsCluster("Bubble Tracking Method",
+                new String[]{"Tracking", "BUBSRadiusYPlus", "BUBSRadiusYMinus", "BUBSRadiusXPlus", "BUBSRadiusXMinus", "tivBUBColBar"}, this);
+        boundTrack.setDescription("Bubble Tracking");
+        lsClusters.add(boundTrack);
         SettingsCluster edgeDetect = new SettingsCluster("BT: Edges",
                 new String[]{"OuterEdgesThreshold", "OuterEdgesThresholdSecond", "SortOutSmallEdges", "MinSize"}, this);
         edgeDetect.setDescription("Boundary Tracking");
@@ -535,11 +547,6 @@ public class Prot_tivPIVBUBBoundaryTracking extends Protocol {
                 new String[]{"iCurvOrder", "iTangOrder", "dCurvThresh"}, this);
         boundSplit.setDescription("Contour Splitting");
         lsClusters.add(boundSplit);
-
-        SettingsCluster boundTrack = new SettingsCluster("Boundary Tracking",
-                new String[]{"BUBSRadiusYPlus", "BUBSRadiusYMinus", "BUBSRadiusXPlus", "BUBSRadiusXMinus", "tivBUBColBar", "Ellipsefit", "BoundTrack", "SimpleTracking"}, this);
-        boundTrack.setDescription("Boundary Tracking");
-        lsClusters.add(boundTrack);
 
     }
 

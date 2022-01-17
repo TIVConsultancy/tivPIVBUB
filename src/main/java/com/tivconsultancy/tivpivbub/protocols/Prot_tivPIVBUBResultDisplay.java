@@ -105,19 +105,19 @@ import javax.imageio.ImageIO;
  *
  * @author TZ ThomasZiegenhein@TIVConsultancy.com +1 480 494 7254
  */
-public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializable {
+public class Prot_tivPIVBUBResultDisplay extends Protocol implements Serializable {
 
     private static final long serialVersionUID = -1142269276593182501L;
     transient BufferedImage imgResult;
     private String name = "Result PIV_BT";
     transient protected LookUp<BufferedImage> outPutImages;
 
-    public Prot_ResultDisplayAI_AI_Int(String name) {
+    public Prot_tivPIVBUBResultDisplay(String name) {
         this();
         this.name = name;
     }
 
-    public Prot_ResultDisplayAI_AI_Int() {
+    public Prot_tivPIVBUBResultDisplay() {
         super();
         imgResult = (new ImageInt(1, 1, 200)).getBuffImage();
         buildLookUp();
@@ -159,7 +159,7 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         ImageInt res = (ImageInt) controller.getCurrentMethod().getProtocol("preproc").getResults()[0];
         imgResult = res.getBuffImage();
         try {
-            double maxVecLength = (double) (Integer) controller.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("BUBSRadiusYPlus");
+            double maxVecLength = (double) (Integer) controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BUBSRadiusYPlus");
             double StretchFactor = 100.0 / maxVecLength;
             oColBar = new Colorbar.StartEndLinearColorBar(0.0, maxVecLength, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
             imgResult = PaintVectors.paintOnImage(vecs, oColBar, imgResult, null, StretchFactor);
@@ -173,9 +173,9 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
 
             }
         } catch (IOException ex) {
-            Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Prot_tivPIVBUBResultDisplay.class.getName()).log(Level.SEVERE, null, ex);
         }
-        OpenTIV_Edges.ReturnCotnainer_EllipseFit lsC = ((PIVBUBController) StaticReferences.controller).getDataBUB().results_EFit;
+        OpenTIV_Edges.ReturnContainer_EllipseFit lsC = ((PIVBUBController) StaticReferences.controller).getDataBUB().results_EFit;
         Graphics2D g2Result = imgResult.createGraphics();
         g2Result.drawImage(imgResult, 0, 0, null);
         for (Circle loCircle : lsC.loCircles) {
@@ -195,7 +195,7 @@ public class Prot_ResultDisplayAI_AI_Int extends Protocol implements Serializabl
         try {
             ImageIO.write(imgResult, "png", new File(oPath.getPath() + System.getProperty("file.separator") + sFileName + "PIV_BT.jpg"));
         } catch (IOException ex) {
-            Logger.getLogger(Prot_ResultDisplayAI_AI_Int.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Prot_tivPIVBUBResultDisplay.class.getName()).log(Level.SEVERE, null, ex);
         }
 
         buildLookUp();

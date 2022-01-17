@@ -3,14 +3,15 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package com.tivconsultancy.tivpivbub.data;
 
 import com.tivconsultancy.opentiv.datamodels.Result1D;
 import com.tivconsultancy.opentiv.datamodels.ResultsImageShowAble;
 import com.tivconsultancy.opentiv.datamodels.overtime.DataBaseEntry;
 import com.tivconsultancy.opentiv.datamodels.overtime.DatabaseRAM;
-import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges.ReturnCotnainer_EllipseFit;
+import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges;
+import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges.ReturnContainer_EllipseFit;
+import com.tivconsultancy.opentiv.helpfunctions.matrix.MatrixEntry;
 import com.tivconsultancy.opentiv.imageproc.shapes.Circle;
 import com.tivconsultancy.opentiv.math.specials.LookUp;
 import com.tivconsultancy.opentiv.math.specials.NameObject;
@@ -22,7 +23,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import javax.imageio.ImageIO;
@@ -38,21 +41,23 @@ public class DataBUB implements DataBaseEntry, Serializable, ResultsImageShowAbl
 
     // 1D Data
     public Result1D results1D;
-    
+
     //Data
     public int[][] iaEdgesFirst;
     public int[][] iaEdgesSecond;
-    
+
     //Data
     public int[][] iaEdgesRAWFirst;
     public int[][] iaEdgesRAWSecond;
-    
-    public ReturnCotnainer_EllipseFit results_EFit;
-    public ReturnContainerBoundaryTracking results_BT;
+
+    public ReturnContainer_EllipseFit results_EFit = null;
+    public ReturnContainer_EllipseFit results_EFit_2nd = null;
+    public ReturnContainerBoundaryTracking results_BT = null;
+    public OpenTIV_Edges.ReturnContainer_ArbStruc results_Arb = null;
+    public OpenTIV_Edges.ReturnContainer_ArbStruc results_Arb_2nd = null;
     public Map<Circle, VelocityVec> results;
-    
-    
-    public DataBUB(int index){
+
+    public DataBUB(int index) {
         results1D = new Result1D(index);
         outPutImages = new LookUp<>();
         results = new HashMap<>();
@@ -98,5 +103,30 @@ public class DataBUB implements DataBaseEntry, Serializable, ResultsImageShowAbl
             }
         }
     }
-    
+
+    public static class BubbleJSON {
+
+        public int ID;
+        public int[] YPoints;
+        public int[] XPoints;
+        public List<MatrixEntry> lme;
+
+        public BubbleJSON() {
+
+        }
+
+        public BubbleJSON(int ID, int[] YPoints, int[] XPoints) {
+            this.ID = ID;
+            this.YPoints = YPoints;
+            this.XPoints = XPoints;
+        }
+
+        public void createLme() {
+            this.lme = new ArrayList<>();
+            for (int i = 0; i < YPoints.length; i++) {
+                lme.add(new MatrixEntry(YPoints[i], XPoints[i]));
+            }
+        }
+    }
+
 }

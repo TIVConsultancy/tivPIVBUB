@@ -159,9 +159,6 @@ public class Prot_tivPIVBUBMergeShapeBoundTrack extends Protocol {
         }
 
         try {
-//            control.getDataBUB().results_BT = BoundTrackZiegenhein_2018.runBoundTrack(this, new ImageGrid(edgesB1.iaPixels), new ImageGrid(edgesB2.iaPixels));
-//            this.contours1 = control.getDataBUB().results_BT.contours1;
-//            this.contours2 = control.getDataBUB().results_BT.contours2;
             List<VelocityVec> vecs = new ArrayList<>(controller.getDataBUB().results.values());
             Colorbar oColBar = new Colorbar.StartEndLinearColorBar(0.0, getMaxVecLength(vecs).dEnum * 1.1, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
             VectorDisplay = PaintVectors.paintOnImage(vecs, oColBar, connected.getBuffImage(), null, getAutoStretchFactor(vecs, connected.iaPixels.length / 10.0, 1.0));
@@ -169,7 +166,7 @@ public class Prot_tivPIVBUBMergeShapeBoundTrack extends Protocol {
             StaticReferences.getlog().log(Level.SEVERE, "Unable to track boundaries", ex);
             VectorDisplay = connected.getBuffImage();
         } catch (IOException ex) {
-            Logger.getLogger(Prot_tivPIVBUBBoundaryTracking.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Prot_tivPIVBUBBubbleTracking.class.getName()).log(Level.SEVERE, null, ex);
             VectorDisplay = connected.getBuffImage();
         }
 

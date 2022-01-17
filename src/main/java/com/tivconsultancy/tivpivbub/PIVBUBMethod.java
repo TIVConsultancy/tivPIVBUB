@@ -16,14 +16,17 @@ import com.tivconsultancy.tivpiv.PIVController;
 import com.tivconsultancy.tivpiv.PIVMethod;
 import com.tivconsultancy.tivpiv.PIVStaticReferences;
 import com.tivconsultancy.tivpiv.data.DataPIV;
-import com.tivconsultancy.tivpivbub.protocols.Prot_ResultDisplayAI_AI_Int;
-import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBBoundaryTracking;
+import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBResultDisplay;
+import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBBubbleTracking;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBDataHandling;
-import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBEdges;
+import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBBubbleFinder;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBMergeShapeBoundTrack;
+import delete.com.tivconsultancy.opentiv.devgui.main.ImagePath;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -40,12 +43,12 @@ public class PIVBUBMethod extends PIVMethod {
     }
 
     private void initProtocols() {
-        methods.add(new NameObject<>("edgedetect", new Prot_tivPIVBUBEdges()), methods.getSize() - 1);
-        methods.add(new NameObject<>("boundtrack", new Prot_tivPIVBUBBoundaryTracking()), methods.getSize() - 1);
+        methods.add(new NameObject<>("bubblefinder", new Prot_tivPIVBUBBubbleFinder()), methods.getSize() - 1);
+        methods.add(new NameObject<>("bubtrack", new Prot_tivPIVBUBBubbleTracking()), methods.getSize() - 1);
         methods.add(new NameObject<>("result", new Prot_tivPIVBUBMergeShapeBoundTrack()), methods.getSize() - 1);
         methods.remove("data");
         methods.add(new NameObject<>("data", new Prot_tivPIVBUBDataHandling()), methods.getSize() - 1);
-        methods.add(new NameObject<>("AIPost", new Prot_ResultDisplayAI_AI_Int()), methods.getSize() - 1);
+        methods.add(new NameObject<>("AIPost", new Prot_tivPIVBUBResultDisplay()), methods.getSize() - 1);
     }
 
     @Override
@@ -55,29 +58,39 @@ public class PIVBUBMethod extends PIVMethod {
             getProtocol("read").run(new Object[]{imageFile1, imageFile2});
             getProtocol("preproc").run(getProtocol("read").getResults());
             Object[] prepr = getProtocol("preproc").getResults();
-            getProtocol("mask").run(new Object[]{prepr[0], prepr[1], imageFile1, imageFile2, prepr[2]});
-//            if (!checkMask((ImageInt) getProtocol("mask").getResults()[1]) && !checkMask((ImageInt) getProtocol("mask").getResults()[2])) {
-                PIVStaticReferences.calcIntensityValues(((PIVController) StaticReferences.controller).getDataPIV());
 
-                if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
-                    getProtocol("inter areas").run();
-                    getProtocol("calculate").run();
-                    getProtocol("display").run();
+            if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true || getProtocol("bubblefinder").getSettingsValue("Reco") == "Read Mask and Points"
+                    || getProtocol("bubblefinder").getSettingsValue("Reco") == "Read Mask and Ellipse fit") {
+                getProtocol("mask").run(new Object[]{prepr[0], prepr[1], imageFile1, imageFile2, prepr[2]});
+            }
+
+            if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
+                PIVStaticReferences.calcIntensityValues(((PIVController) StaticReferences.controller).getDataPIV());
+                getProtocol("inter areas").run();
+                getProtocol("calculate").run();
+                getProtocol("display").run();
+            }
+
+            getProtocol("bubblefinder").run();
+
+            if (getProtocol("bubtrack").getSettingsValue("Tracking") != "Disable Tracking") {
+
+                getProtocol("bubtrack").run();
+
+                if (getProtocol("bubtrack").getSettingsValue("Tracking") == "Boundary Tracking") {
+                    getProtocol("result").run();
                 }
-                if ((boolean) getProtocol("boundtrack").getSettingsValue("Ellipsefit")) {
-                    getProtocol("boundtrack").run();
-                    if ((boolean) getProtocol("boundtrack").getSettingsValue("BoundTrack") || (boolean) getProtocol("boundtrack").getSettingsValue("SimpleTracking")) {
-                        getProtocol("result").run();
-                        if ((boolean) getProtocol("system").getSettingsValue("tivGUI_dataDraw")) {
-                            getProtocol("AIPost").run();
-                        }
-                    }
+                if ((boolean) getProtocol("system").getSettingsValue("tivGUI_dataDraw")) {
+                    getProtocol("AIPost").run();
                 }
-                getProtocol("data").run();
-                for (NameSpaceProtocolResults1D e : getProtocol("data").get1DResultsNames()) {
-                    StaticReferences.controller.get1DResults().setResult(e.toString(), getProtocol("data").getOverTimesResult(e));
-                }
-                StaticReferences.controller.getPlotAbleOverTimeResults().refreshObjects();
+
+            }
+
+            getProtocol("data").run();
+            for (NameSpaceProtocolResults1D e : getProtocol("data").get1DResultsNames()) {
+                StaticReferences.controller.get1DResults().setResult(e.toString(), getProtocol("data").getOverTimesResult(e));
+            }
+            StaticReferences.controller.getPlotAbleOverTimeResults().refreshObjects();
 //            }
             System.out.println(System.currentTimeMillis() - dStartTime);
         } catch (UnableToRunException ex) {
