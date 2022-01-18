@@ -7,29 +7,18 @@ package com.tivconsultancy.tivpivbub;
 
 import com.tivconsultancy.opentiv.highlevel.protocols.NameSpaceProtocolResults1D;
 import com.tivconsultancy.opentiv.highlevel.protocols.UnableToRunException;
-import static com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EdgeDetections.getThinEdge;
 import com.tivconsultancy.opentiv.imageproc.primitives.ImageInt;
-import com.tivconsultancy.opentiv.math.exceptions.EmptySetException;
 import com.tivconsultancy.opentiv.math.specials.NameObject;
 import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpiv.PIVController;
 import com.tivconsultancy.tivpiv.PIVMethod;
 import com.tivconsultancy.tivpiv.PIVStaticReferences;
-import com.tivconsultancy.tivpiv.data.DataPIV;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBResultDisplay;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBBubbleTracking;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBDataHandling;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBBubbleFinder;
 import com.tivconsultancy.tivpivbub.protocols.Prot_tivPIVBUBMergeShapeBoundTrack;
-import delete.com.tivconsultancy.opentiv.devgui.main.ImagePath;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 
 /**
  *
@@ -55,6 +44,7 @@ public class PIVBUBMethod extends PIVMethod {
     public void run() throws Exception {
         long dStartTime = System.currentTimeMillis();
         try {
+            double dTimer1 = System.currentTimeMillis();
             getProtocol("read").run(new Object[]{imageFile1, imageFile2});
             getProtocol("preproc").run(getProtocol("read").getResults());
             Object[] prepr = getProtocol("preproc").getResults();
@@ -63,23 +53,29 @@ public class PIVBUBMethod extends PIVMethod {
                     || getProtocol("bubblefinder").getSettingsValue("Reco") == "Read Mask and Ellipse fit") {
                 getProtocol("mask").run(new Object[]{prepr[0], prepr[1], imageFile1, imageFile2, prepr[2]});
             }
-
+            System.out.println("Finished Masking in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
+                    + " seconds ");
+            dTimer1 = System.currentTimeMillis();
             if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
                 PIVStaticReferences.calcIntensityValues(((PIVController) StaticReferences.controller).getDataPIV());
                 getProtocol("inter areas").run();
                 getProtocol("calculate").run();
                 getProtocol("display").run();
             }
+            System.out.println("Finished PIV interrogation in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
+                    + " seconds ");
+            dTimer1 = System.currentTimeMillis();
 
             getProtocol("bubblefinder").run();
+            System.out.println("Finished Bubble Identification in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
+                    + " seconds ");
 
             if (getProtocol("bubtrack").getSettingsValue("Tracking") != "Disable Tracking") {
-
+                dTimer1 = System.currentTimeMillis();
                 getProtocol("bubtrack").run();
-
-                if (getProtocol("bubtrack").getSettingsValue("Tracking") == "Boundary Tracking") {
-                    getProtocol("result").run();
-                }
+                getProtocol("result").run();
+                System.out.println("Finished Tracking in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
+                        + " seconds ");
                 if ((boolean) getProtocol("system").getSettingsValue("tivGUI_dataDraw")) {
                     getProtocol("AIPost").run();
                 }
@@ -92,7 +88,7 @@ public class PIVBUBMethod extends PIVMethod {
             }
             StaticReferences.controller.getPlotAbleOverTimeResults().refreshObjects();
 //            }
-            System.out.println(System.currentTimeMillis() - dStartTime);
+            System.out.println("Total time: " + ((System.currentTimeMillis() - dStartTime) / 1000.0) + " seconds");
         } catch (UnableToRunException ex) {
             StaticReferences.getlog().log(Level.SEVERE, "Wrong input", ex);
         }

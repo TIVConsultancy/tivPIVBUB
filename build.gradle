@@ -23,20 +23,12 @@ dependencies {
     implementation "commons-cli:commons-cli:1.4"
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.12.1"
     implementation "com.google.code.gson:gson:2.8.5"
-//    implementation "ai.djl:api:0.4.0-SNAPSHOT"
-//    implementation "ai.djl:basicdataset:0.4.0-SNAPSHOT"
-//    implementation "ai.djl:model-zoo:0.4.0-SNAPSHOT"
-//    implementation "ai.djl.mxnet:mxnet-model-zoo:0.4.0-SNAPSHOT"
-    
-    // See https://github.com/awslabs/djl/blob/master/mxnet/mxnet-engine/README.md for more MXNet library selection options
-//    runtimeOnly "ai.djl.mxnet:mxnet-native-auto:1.6.0"
 
     testCompile group: 'junit', name: 'junit', version: '4.10'
     compile 'org.jfxtras:jmetro:8.6.5'
     compile group: 'commons-logging', name: 'commons-logging', version: '1.1.1'
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
-//    compile 'com.github.TIVConsultancy:openTIV:DevelopingDatabaseStructure-SNAPSHOT'
-//    compile 'com.github.TIVConsultancy:tivGUI:master-SNAPSHOT'
+
     compile project(":openTIV")
     compile project(":tivGUI")
     compile project(":tivPIV")

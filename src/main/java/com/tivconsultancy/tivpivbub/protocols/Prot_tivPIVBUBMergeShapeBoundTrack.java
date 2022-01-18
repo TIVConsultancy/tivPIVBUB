@@ -12,7 +12,7 @@ import com.tivconsultancy.opentiv.highlevel.protocols.Protocol;
 import com.tivconsultancy.opentiv.highlevel.protocols.UnableToRunException;
 import com.tivconsultancy.opentiv.imageproc.primitives.ImageInt;
 import com.tivconsultancy.opentiv.imageproc.primitives.ImagePoint;
-import com.tivconsultancy.opentiv.imageproc.shapes.Circle;
+import com.tivconsultancy.opentiv.imageproc.shapes.Shape;
 import com.tivconsultancy.opentiv.math.algorithms.Sorting;
 import com.tivconsultancy.opentiv.math.exceptions.EmptySetException;
 import com.tivconsultancy.opentiv.math.primitives.OrderedPair;
@@ -82,14 +82,14 @@ public class Prot_tivPIVBUBMergeShapeBoundTrack extends Protocol {
 
         PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
         ImageInt contourtsShapeFit = new ImageInt(controller.getDataBUB().iaEdgesFirst);
-        List<Circle> circles = controller.getDataBUB().results_EFit.loCircles;
+        List<Shape> circles = controller.getDataBUB().results_Shape.loShapes;
         Map<CPXTr, VelocityVec> interfaceVelo = controller.getDataBUB().results_BT.velocityVectors;
 
-        Map<CPXTr, Circle> connectionMap = new HashMap<>();
+        Map<CPXTr, Shape> connectionMap = new HashMap<>();
 
         int iCounter = 256;
-        for (Circle c : circles) {
-            contourtsShapeFit.setPoints(c.lmeCircle, iCounter);
+        for (Shape c : circles) {
+            contourtsShapeFit.setPoints(c.getlmeList(), iCounter);
             iCounter++;
         }
 
@@ -115,11 +115,11 @@ public class Prot_tivPIVBUBMergeShapeBoundTrack extends Protocol {
             }
         }
 
-        Map<Circle, List<CPXTr>> reverseConnectionMap = new HashMap<>();
+        Map<Shape, List<CPXTr>> reverseConnectionMap = new HashMap<>();
 
-        for (Circle c : circles) {
+        for (Shape c : circles) {
             List<CPXTr> contoursConnectedToCircle = new ArrayList<>();
-            for (Map.Entry<CPXTr, Circle> entry : connectionMap.entrySet()) {
+            for (Map.Entry<CPXTr, Shape> entry : connectionMap.entrySet()) {
                 if (entry.getValue().equals(c)) {
                     contoursConnectedToCircle.add(entry.getKey());
                 }
@@ -131,7 +131,7 @@ public class Prot_tivPIVBUBMergeShapeBoundTrack extends Protocol {
 
         ImageInt connected = new ImageInt(contourtsShapeFit.iaPixels.length, contourtsShapeFit.iaPixels[0].length, 0);
 
-        for (Map.Entry<Circle, List<CPXTr>> entry : reverseConnectionMap.entrySet()) {
+        for (Map.Entry<Shape, List<CPXTr>> entry : reverseConnectionMap.entrySet()) {
 //            int greyValue = (int) (Math.random()*255.0);
             double dvx = 0.0;
             double dvy = 0.0;
@@ -153,7 +153,7 @@ public class Prot_tivPIVBUBMergeShapeBoundTrack extends Protocol {
 //                connected.setPointsIMGP(cpx.getPoints(), greyValue);
             }
             if (iCount > 0) {
-                connected.setPoints(entry.getKey().lmeCircle, 255);                
+                connected.setPoints(entry.getKey().getlmeList(), 255);                
                 controller.getDataBUB().results.put(entry.getKey(), new VelocityVec(dvx / iCount, dvy / iCount, new OrderedPair(x / iCount, y / iCount)));
             }
         }

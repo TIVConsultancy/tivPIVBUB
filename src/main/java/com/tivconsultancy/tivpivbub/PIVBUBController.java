@@ -41,18 +41,19 @@ public class PIVBUBController extends PIVController {
     public void startNewIndexStep() {
         DataBUB databaseBUBPrevStep = new DataBUB(0);
         boolean bTrack = this.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("Tracking") == "Disable Tracking" ? false : true;
-        if (this.databaseBUB1Step.results_Arb != null && bTrack) {
-            databaseBUBPrevStep.results_Arb = this.databaseBUB1Step.results_Arb;
-            System.out.println("Yeah!");
-//        } else {
-//            System.out.println("NOOO");
+        if (this.neglect_prevStep) {
+            this.databaseBUB1Step.results_Shape_2nd = null;
+            this.neglect_prevStep=false;
+        }
+        if (this.databaseBUB1Step.results_Shape_2nd != null && bTrack ) {
+            databaseBUBPrevStep.results_Shape_2nd = this.databaseBUB1Step.results_Shape_2nd;
         }
         super.startNewIndexStep();
         databaseBUB1Step = new DataBUB(getSelecedIndex());
-        if (databaseBUBPrevStep.results_Arb != null && bTrack) {
-            databaseBUB1Step.results_Arb_2nd = databaseBUBPrevStep.results_Arb;
-            System.out.println("NOOO");
+        if (databaseBUBPrevStep.results_Shape_2nd != null && bTrack) {
+            databaseBUB1Step.results_Shape_2nd = databaseBUBPrevStep.results_Shape_2nd;
         }
+
     }
 
 }

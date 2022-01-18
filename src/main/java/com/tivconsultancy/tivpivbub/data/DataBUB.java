@@ -9,10 +9,9 @@ import com.tivconsultancy.opentiv.datamodels.Result1D;
 import com.tivconsultancy.opentiv.datamodels.ResultsImageShowAble;
 import com.tivconsultancy.opentiv.datamodels.overtime.DataBaseEntry;
 import com.tivconsultancy.opentiv.datamodels.overtime.DatabaseRAM;
-import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges;
-import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges.ReturnContainer_EllipseFit;
+import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges.ReturnContainer_Shape;
 import com.tivconsultancy.opentiv.helpfunctions.matrix.MatrixEntry;
-import com.tivconsultancy.opentiv.imageproc.shapes.Circle;
+import com.tivconsultancy.opentiv.imageproc.shapes.Shape;
 import com.tivconsultancy.opentiv.math.specials.LookUp;
 import com.tivconsultancy.opentiv.math.specials.NameObject;
 import com.tivconsultancy.opentiv.physics.vectors.VelocityVec;
@@ -50,12 +49,10 @@ public class DataBUB implements DataBaseEntry, Serializable, ResultsImageShowAbl
     public int[][] iaEdgesRAWFirst;
     public int[][] iaEdgesRAWSecond;
 
-    public ReturnContainer_EllipseFit results_EFit = null;
-    public ReturnContainer_EllipseFit results_EFit_2nd = null;
+    public ReturnContainer_Shape results_Shape = null;
+    public ReturnContainer_Shape results_Shape_2nd = null;
     public ReturnContainerBoundaryTracking results_BT = null;
-    public OpenTIV_Edges.ReturnContainer_ArbStruc results_Arb = null;
-    public OpenTIV_Edges.ReturnContainer_ArbStruc results_Arb_2nd = null;
-    public Map<Circle, VelocityVec> results;
+    public Map<Shape, VelocityVec> results;
 
     public DataBUB(int index) {
         results1D = new Result1D(index);

@@ -6,12 +6,13 @@
 package com.tivconsultancy.tivpivbub.protocols;
 
 import com.tivconsultancy.opentiv.helpfunctions.io.Writer;
+import com.tivconsultancy.opentiv.helpfunctions.matrix.MatrixEntry;
 import com.tivconsultancy.opentiv.helpfunctions.settings.SettingObject;
 import com.tivconsultancy.opentiv.helpfunctions.settings.SettingsCluster;
 import com.tivconsultancy.opentiv.highlevel.protocols.NameSpaceProtocolResults1D;
 import com.tivconsultancy.opentiv.highlevel.protocols.UnableToRunException;
 import com.tivconsultancy.opentiv.imageproc.primitives.ImageInt;
-import com.tivconsultancy.opentiv.imageproc.shapes.Circle;
+import com.tivconsultancy.opentiv.imageproc.shapes.Shape;
 import com.tivconsultancy.opentiv.math.algorithms.Averaging;
 import com.tivconsultancy.opentiv.math.interfaces.Value;
 import com.tivconsultancy.opentiv.math.primitives.Vector;
@@ -24,7 +25,6 @@ import com.tivconsultancy.tivpiv.PIVController;
 import com.tivconsultancy.tivpiv.PIVMethod;
 import com.tivconsultancy.tivpiv.data.DataPIV;
 import com.tivconsultancy.tivpiv.protocols.PIVProtocol;
-import com.tivconsultancy.tivpiv.tivPIVSubControllerSQL;
 import com.tivconsultancy.tivpiv.tivPIVSubControllerSQL.sqlEntryPIV;
 import com.tivconsultancy.tivpivbub.PIVBUBController;
 import com.tivconsultancy.tivpivbub.data.DataBUB;
@@ -135,30 +135,33 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                     }
                 }
                 List<sqlEntryBUB> entriesBUB = new ArrayList<>();
-                if ((boolean) controller.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("BoundTrack")||(boolean) controller.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("SimpleTracking")) {
-                    for (Map.Entry<Circle, VelocityVec> m : dataBUB.results.entrySet()) {
+                if (controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("Tracking") != "Disable Tracking") {
+                    for (Map.Entry<Shape, VelocityVec> m : dataBUB.results.entrySet()) {
                         double dPosX = (m.getValue().getPosX() - refPX_X) * dResolution + refM_X;
                         double dPosY = refM_Y - (m.getValue().getPosY() - refPX_Y) * dResolution;
                         double dPosZ = refM_Z;
                         double dVX = m.getValue().getX() * dResolution * fps;
                         double dVY = -1.0 * m.getValue().getY() * dResolution * fps;
-                        double majorAxis = Math.max(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
-                        double minorAxis = Math.min(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
-                        double orientaton = m.getKey().dAngle;
-                        int AverageGreyDeri = (int) (double) m.getKey().dAvergeGreyDerivative;
+                        double majorAxis = m.getKey().getMajorAxis() * dResolution;
+                        double minorAxis = m.getKey().getMinorAxis()* dResolution;
+                        double orientaton = m.getKey().getOrientationAngle();
+                        int AverageGreyDeri = (int) (double) m.getKey().getGreyDerivative();
                         entriesBUB.add(new sqlEntryBUB(expName, settingsPIVNameBUB, dPosX, dPosY, dPosZ, dVX, dVY, majorAxis, minorAxis, orientaton, AverageGreyDeri));
                     }
                 } else {
-                    for (Circle m : dataBUB.results_EFit.loCircles) {
-                        double dPosX = (m.meCenter.j - refPX_X) * dResolution + refM_X;
-                        double dPosY = refM_Y - (m.meCenter.i - refPX_Y) * dResolution;
+                    for (Shape m : dataBUB.results_Shape.loShapes) {
+                        MatrixEntry meCenter = MatrixEntry.getMeanEntry(m.getlmeList());
+                        double dPosX = (meCenter.j - refPX_X) * dResolution + refM_X;
+                        double dPosY = refM_Y - (meCenter.i - refPX_Y) * dResolution;
                         double dPosZ = refM_Z;
                         double dVX = 0.0;
                         double dVY = 0.0;
-                        double majorAxis = Math.max(m.dDiameterI, m.dDiameterJ) * dResolution;
-                        double minorAxis = Math.min(m.dDiameterI, m.dDiameterJ) * dResolution;
-                        double orientaton = m.dAngle;
-                        int AverageGreyDeri = (int) (double) m.dAvergeGreyDerivative;
+//                        double majorAxis = Math.max(m.dDiameterI, m.dDiameterJ) * dResolution;
+//                        double minorAxis = Math.min(m.dDiameterI, m.dDiameterJ) * dResolution;
+                        double majorAxis = m.getMajorAxis() * dResolution;
+                        double minorAxis = m.getMinorAxis() * dResolution;
+                        double orientaton = m.getOrientationAngle();
+                        int AverageGreyDeri = (int) m.getlmeList().get(0).dValue;
                         entriesBUB.add(new sqlEntryBUB(expName, settingsPIVNameBUB, dPosX, dPosY, dPosZ, dVX, dVY, majorAxis, minorAxis, orientaton, AverageGreyDeri));
 
                     }
@@ -216,16 +219,16 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                     oWrite.writels(lsOut, ",");
                     lsOut.clear();
                 }
-                if ((boolean) controller.getCurrentMethod().getProtocol("boundtrack").getSettingsValue("BoundTrack")) {
-                    for (Map.Entry<Circle, VelocityVec> m : dataBUB.results.entrySet()) {
+                if ( controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("Tracking") != "Disable Tracking") {
+                    for (Map.Entry<Shape, VelocityVec> m : dataBUB.results.entrySet()) {
                         double dPosX = (m.getValue().getPosX() - refPX_X) * dResolution + refM_X;
                         double dPosY = (m.getValue().getPosY() - refPX_Y) * dResolution + refM_Y;
                         double dPosZ = refM_Z;
                         double dVX = m.getValue().getX() * dResolution * fps;
                         double dVY = -1.0 * m.getValue().getY() * dResolution * fps;
-                        double majorAxis = Math.max(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
-                        double minorAxis = Math.min(m.getKey().dDiameterI, m.getKey().dDiameterJ) * dResolution;
-                        double orientaton = m.getKey().dAngle;
+                        double majorAxis = m.getKey().getMajorAxis() * dResolution;
+                        double minorAxis = m.getKey().getMajorAxis() * dResolution;
+                        double orientaton = m.getKey().getOrientationAngle();
                         String[] sOut = new String[9];
                         sOut[0] = String.valueOf(dPosX);
                         sOut[1] = String.valueOf(dPosY);
@@ -239,15 +242,16 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                         lsOut.add(sOut);
                     }
                 } else {
-                    for (Circle m : dataBUB.results_EFit.loCircles) {
-                        double dPosX = (m.meCenter.j - refPX_X) * dResolution + refM_X;
-                        double dPosY = refM_Y - (m.meCenter.i - refPX_Y) * dResolution;
+                    for (Shape m : dataBUB.results_Shape.loShapes) {
+                        MatrixEntry meCenter = MatrixEntry.getMeanEntry(m.getlmeList());
+                        double dPosX = (meCenter.j - refPX_X) * dResolution + refM_X;
+                        double dPosY = refM_Y - (meCenter.i - refPX_Y) * dResolution;
                         double dPosZ = refM_Z;
                         double dVX = 0.0;
                         double dVY = 0.0;
-                        double majorAxis = Math.max(m.dDiameterI, m.dDiameterJ) * dResolution;
-                        double minorAxis = Math.min(m.dDiameterI, m.dDiameterJ) * dResolution;
-                        double orientaton = m.dAngle;
+                        double majorAxis = m.getMajorAxis() * dResolution;
+                        double minorAxis = m.getMinorAxis() * dResolution;
+                        double orientaton = m.getOrientationAngle();
                         String[] sOut = new String[9];
                         sOut[0] = String.valueOf(dPosX);
                         sOut[1] = String.valueOf(dPosY);

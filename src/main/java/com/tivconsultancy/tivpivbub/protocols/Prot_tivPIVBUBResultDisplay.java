@@ -16,87 +16,31 @@
 package com.tivconsultancy.tivpivbub.protocols;
 
 import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges;
-import static com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges.closeContours;
-import static com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges.connectContours;
 import com.tivconsultancy.opentiv.helpfunctions.colorspaces.ColorSpaceCIEELab;
 import com.tivconsultancy.opentiv.helpfunctions.colorspaces.Colorbar;
-import com.tivconsultancy.opentiv.helpfunctions.hpc.Parallel;
-import com.tivconsultancy.opentiv.helpfunctions.io.Reader;
-import com.tivconsultancy.opentiv.helpfunctions.matrix.Matrix;
 import com.tivconsultancy.opentiv.helpfunctions.matrix.MatrixEntry;
-import com.tivconsultancy.opentiv.helpfunctions.settings.SettingObject;
-import com.tivconsultancy.opentiv.helpfunctions.settings.Settings;
-import com.tivconsultancy.opentiv.helpfunctions.settings.SettingsCluster;
 import com.tivconsultancy.opentiv.highlevel.protocols.NameSpaceProtocolResults1D;
 import com.tivconsultancy.opentiv.highlevel.protocols.Protocol;
 import com.tivconsultancy.opentiv.highlevel.protocols.UnableToRunException;
-import com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.BasicIMGOper;
-import com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EllipseDetection;
-import static com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EllipseDetection.EllipseFit_Contours;
-import static com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EllipseDetection.RayTracingCheck3;
-import static com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EllipseDetection.checkIfInside;
-import static com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EllipseDetection.convert;
-import static com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EllipseDetection.convert_CPX;
-import static com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EllipseDetection.filterEllipse;
-import static com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EllipseDetection.getPixelsOnCircle;
-import com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.Morphology;
-import com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.N8;
-import com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.Ziegenhein_2018;
-import com.tivconsultancy.opentiv.imageproc.algorithms.areaextraction.PreMarked;
-import com.tivconsultancy.opentiv.imageproc.contours.BasicOperations;
-import static com.tivconsultancy.opentiv.imageproc.contours.BasicOperations.getAllContours;
-import com.tivconsultancy.opentiv.imageproc.contours.CPX;
-import com.tivconsultancy.opentiv.imageproc.img_io.IMG_Writer;
-import com.tivconsultancy.opentiv.imageproc.primitives.ImageGrid;
 import com.tivconsultancy.opentiv.imageproc.primitives.ImageInt;
-import com.tivconsultancy.opentiv.imageproc.primitives.ImagePoint;
-import com.tivconsultancy.opentiv.imageproc.shapes.ArbStructure;
-import com.tivconsultancy.opentiv.imageproc.shapes.ArbStructure2;
-import com.tivconsultancy.opentiv.imageproc.shapes.Circle;
-import com.tivconsultancy.opentiv.imageproc.shapes.Line;
-import com.tivconsultancy.opentiv.imageproc.shapes.Line2;
-import com.tivconsultancy.opentiv.math.algorithms.Averaging;
-import com.tivconsultancy.opentiv.math.algorithms.Sorting;
-import com.tivconsultancy.opentiv.math.exceptions.EmptySetException;
-import com.tivconsultancy.opentiv.math.functions.PLF;
-import com.tivconsultancy.opentiv.math.interfaces.SideCondition2;
-import com.tivconsultancy.opentiv.math.primitives.OrderedPair;
-import com.tivconsultancy.opentiv.math.sets.Set1D;
-import com.tivconsultancy.opentiv.math.sets.Set2D;
-import com.tivconsultancy.opentiv.math.specials.EnumObject;
+import com.tivconsultancy.opentiv.imageproc.shapes.Shape;
 import com.tivconsultancy.opentiv.math.specials.LookUp;
 import com.tivconsultancy.opentiv.math.specials.NameObject;
 import com.tivconsultancy.opentiv.physics.vectors.VelocityVec;
 import com.tivconsultancy.opentiv.postproc.vector.PaintVectors;
-import com.tivconsultancy.opentiv.velocimetry.boundarytracking.BoundTrackZiegenhein_2018;
-import static com.tivconsultancy.opentiv.velocimetry.boundarytracking.BoundTrackZiegenhein_2018.getNearestForCPXTr;
-import static com.tivconsultancy.opentiv.velocimetry.boundarytracking.BoundTrackZiegenhein_2018.getSubPixelDist;
-import static com.tivconsultancy.opentiv.velocimetry.boundarytracking.BoundTrackZiegenhein_2018.getvalidCPXListFirst;
-import static com.tivconsultancy.opentiv.velocimetry.boundarytracking.BoundTrackZiegenhein_2018.getvalidCPXListSecond;
-import static com.tivconsultancy.opentiv.velocimetry.boundarytracking.BoundTrackZiegenhein_2018.oHelp;
-import static com.tivconsultancy.opentiv.velocimetry.boundarytracking.BoundTrackZiegenhein_2018.setHelpFunction;
-import com.tivconsultancy.opentiv.velocimetry.boundarytracking.CPXTr;
-import com.tivconsultancy.opentiv.velocimetry.boundarytracking.ReturnContainerBoundaryTracking;
-import com.tivconsultancy.opentiv.velocimetry.helpfunctions.VelocityGrid;
 import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpiv.PIVController;
 import com.tivconsultancy.tivpiv.data.DataPIV;
 import com.tivconsultancy.tivpivbub.PIVBUBController;
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -175,12 +119,12 @@ public class Prot_tivPIVBUBResultDisplay extends Protocol implements Serializabl
         } catch (IOException ex) {
             Logger.getLogger(Prot_tivPIVBUBResultDisplay.class.getName()).log(Level.SEVERE, null, ex);
         }
-        OpenTIV_Edges.ReturnContainer_EllipseFit lsC = ((PIVBUBController) StaticReferences.controller).getDataBUB().results_EFit;
+        OpenTIV_Edges.ReturnContainer_Shape lsC = ((PIVBUBController) StaticReferences.controller).getDataBUB().results_Shape;
         Graphics2D g2Result = imgResult.createGraphics();
         g2Result.drawImage(imgResult, 0, 0, null);
-        for (Circle loCircle : lsC.loCircles) {
+        for (Shape loCircle : lsC.loShapes) {
             g2Result.setColor(Color.BLUE);
-            for (MatrixEntry me : loCircle.lmeCircle) {
+            for (MatrixEntry me : loCircle.getlmeList()) {
                 if (res.isInside(me.i, me.j)) {
                     g2Result.drawLine(me.j, me.i, me.j, me.i);
                 }

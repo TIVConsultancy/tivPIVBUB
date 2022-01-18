@@ -24,6 +24,7 @@ import com.tivconsultancy.opentiv.imageproc.primitives.ImageInt;
 import com.tivconsultancy.opentiv.imageproc.shapes.ArbStructure2;
 import com.tivconsultancy.opentiv.imageproc.shapes.Circle;
 import com.tivconsultancy.opentiv.imageproc.shapes.Line;
+import com.tivconsultancy.opentiv.imageproc.shapes.Shape;
 import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpivbub.PIVBUBController;
 import com.tivconsultancy.tivpivbub.data.DataBUB.BubbleJSON;
@@ -94,7 +95,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
     @Override
     public void run(Object... input) throws UnableToRunException {
-        double dTimer1 = System.currentTimeMillis();
+        
         PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
         List<ImagePath> sNames = controller.getCurrentMethod().getInputImages();
         ImageInt readFirst = new ImageInt(controller.getDataPIV().iaReadInFirst);
@@ -104,14 +105,14 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         //******Method 1*******
         if (this.getSettingsValue("Reco") == "Edge Detector and Ellipse fit") {
 
-            if (controller.getDataBUB().results_EFit_2nd == null) {
+            if (controller.getDataBUB().results_Shape_2nd == null) {
                 System.out.println("Bubble Identification using Edge Detector and Ellipse fit");
                 edges1st = OpenTIV_Edges.performEdgeDetecting(this, readFirst);
                 controller.getDataBUB().iaEdgesRAWFirst = edges1st.clone().iaPixels;
                 edges1st = OpenTIV_Edges.performEdgeOperations(this, edges1st, readFirst);
-                controller.getDataBUB().results_EFit = OpenTIV_Edges.performShapeFitting(this, edges1st);
+                controller.getDataBUB().results_Shape = OpenTIV_Edges.performShapeFitting(this, edges1st);
             } else {
-                controller.getDataBUB().results_EFit = controller.getDataBUB().results_EFit_2nd;
+                controller.getDataBUB().results_Shape = controller.getDataBUB().results_Shape_2nd;
             }
 
             if (bTracking) {
@@ -119,27 +120,27 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                 edges2nd = OpenTIV_Edges.performEdgeDetecting(this, readSecond);
                 controller.getDataBUB().iaEdgesRAWSecond = edges2nd.clone().iaPixels;
                 edges2nd = OpenTIV_Edges.performEdgeOperations(this, edges2nd, readSecond);
-                controller.getDataBUB().results_EFit_2nd = OpenTIV_Edges.performShapeFitting(this, edges2nd);
+                controller.getDataBUB().results_Shape_2nd = OpenTIV_Edges.performShapeFitting(this, edges2nd);
 
             }
 
             //******Method 2*******
         } else if (this.getSettingsValue("Reco") == "Read Mask and Ellipse fit") {
 
-            if (controller.getDataBUB().results_EFit_2nd == null) {
+            if (controller.getDataBUB().results_Shape_2nd == null) {
                 System.out.println("Bubble Identification using given Mask and Ellipse fit");
                 ImageInt grad = new ImageInt(readFirst.iaPixels.length, readFirst.iaPixels[0].length);
                 grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 0);
                 ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[1];
                 try {
-                    List<Circle> lsC = getBoundEllipses(iMask1, grad);
-                    controller.getDataBUB().results_EFit = new OpenTIV_Edges.ReturnContainer_EllipseFit(lsC, readFirst);
+                    List<Shape> lsC = getBoundEllipses(iMask1, grad);
+                    controller.getDataBUB().results_Shape = new OpenTIV_Edges.ReturnContainer_Shape(lsC, readFirst);
 
                 } catch (IOException ex) {
                     Logger.getLogger(Prot_tivPIVBUBBubbleFinder.class.getName()).log(Level.SEVERE, null, ex);
                 }
             } else {
-                controller.getDataBUB().results_EFit = controller.getDataBUB().results_EFit_2nd;
+                controller.getDataBUB().results_Shape = controller.getDataBUB().results_Shape_2nd;
             }
 
             if (bTracking) {
@@ -148,8 +149,8 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                 grad.iaPixels = getThinEdge(readSecond.iaPixels, Boolean.FALSE, null, null, 0);
                 ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[2];
                 try {
-                    List<Circle> lsC = getBoundEllipses(iMask1, grad);
-                    controller.getDataBUB().results_EFit_2nd = new OpenTIV_Edges.ReturnContainer_EllipseFit(lsC, readFirst);
+                    List<Shape> lsC = getBoundEllipses(iMask1, grad);
+                    controller.getDataBUB().results_Shape_2nd = new OpenTIV_Edges.ReturnContainer_Shape(lsC, readFirst);
 
                 } catch (IOException ex) {
                     Logger.getLogger(Prot_tivPIVBUBBubbleFinder.class.getName()).log(Level.SEVERE, null, ex);
@@ -160,15 +161,15 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
             //******Method 3*******
         } else if (this.getSettingsValue("Reco") == "Read Mask and Points") {
 
-            if (controller.getDataBUB().results_Arb_2nd == null) {
-
+            if (controller.getDataBUB().results_Shape_2nd == null) {
+                System.out.println("Bubble Identification using given Mask and Points");
                 ImageInt grad = new ImageInt(readFirst.iaPixels.length, readFirst.iaPixels[0].length);
                 grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 0);
                 ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[1];
                 String sName = sNames.get(0).toString().substring(0, sNames.get(0).toString().indexOf("."));
-                controller.getDataBUB().results_Arb = new OpenTIV_Edges.ReturnContainer_ArbStruc(getArbStrucs(iMask1, grad, sName, sPath, sFolder), readFirst);
+                controller.getDataBUB().results_Shape = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucs(iMask1, grad, sName, sPath, sFolder), readFirst);
             } else {
-                controller.getDataBUB().results_Arb = controller.getDataBUB().results_Arb_2nd;
+                controller.getDataBUB().results_Shape = controller.getDataBUB().results_Shape_2nd;
             }
 
             if (bTracking) {
@@ -177,35 +178,27 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                 ImageInt grad = new ImageInt(readSecond.iaPixels.length, readSecond.iaPixels[0].length);
                 grad.iaPixels = getThinEdge(readSecond.iaPixels, Boolean.FALSE, null, null, 0);
                 String sName = sNames.get(1).toString().substring(0, sNames.get(1).toString().indexOf("."));
-                controller.getDataBUB().results_Arb_2nd = new OpenTIV_Edges.ReturnContainer_ArbStruc(getArbStrucs(iMask1, grad, sName, sPath, sFolder), readSecond);
+                controller.getDataBUB().results_Shape_2nd = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucs(iMask1, grad, sName, sPath, sFolder), readSecond);
 
             }
         }
-        if (controller.getDataBUB().results_EFit != null) {
-            for (Circle o : controller.getDataBUB().results_EFit.loCircles) {
-                readFirst.setPoints(o.lmeCircle, 255);
+        if (controller.getDataBUB().results_Shape != null) {
+            for (Shape o : controller.getDataBUB().results_Shape.loShapes) {
+                readFirst.setPoints(o.getlmeList(), 255);
             }
-            System.out.println("Finished Bubble Indentification in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
-                    + " with " + controller.getDataBUB().results_EFit.loCircles.size() + " Bubbles found");
+            
         }
-        if (controller.getDataBUB().results_Arb != null) {
-            for (ArbStructure2 o : controller.getDataBUB().results_Arb.loArbstruc) {
-                readFirst.setPoints(o.loPoints, 255);
-            }
-            System.out.println("Finished Bubble Indentification in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
-                    + " with " + controller.getDataBUB().results_Arb.loArbstruc.size() + " Bubbles found");
-        }
+
         shapeFit = readFirst;
         buildLookUp();
 
     }
 
-    public static List<ArbStructure2> getArbStrucs(ImageInt iMask1, ImageInt grad, String sName, String sPath, String sFolder) {
-        System.out.println("Bubble Identification using given Mask and Points");
-        List<ArbStructure2> lsArbstruc = new ArrayList<>();
+    public static List<Shape> getArbStrucs(ImageInt iMask1, ImageInt grad, String sName, String sPath, String sFolder) {
+
+        List<Shape> lsArbstruc = new ArrayList<>();
         Gson gson = new Gson();
         try {
-            System.out.println("Reading " + sPath + System.getProperty("file.separator") + sFolder + System.getProperty("file.separator") + sName + ".json");
             JsonReader reader = new JsonReader(new FileReader(sPath + System.getProperty("file.separator") + sFolder + System.getProperty("file.separator") + sName + ".json"));
             List<BubbleJSON> in = gson.fromJson(reader, new TypeToken<List<BubbleJSON>>() {
             }.getType());
@@ -213,7 +206,6 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
             for (BubbleJSON bubbleJSON : in) {
                 bubbleJSON.createLme();
             }
-
             //Ascending bubbleJSON.ID order              
             for (int i = 1; i <= iMask1.getMax(); i++) {
 
@@ -239,40 +231,46 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                         }
                     }
                     dAvGrad = dAvGrad / dCounter;
-
-                    if (in.get(0).ID == i) {
-                        ImageInt iOneBubCorrected = new ImageInt(iMask1.iaPixels.length, iMask1.iaPixels[0].length, 0);
-                        BubbleJSON bub = in.get(0);
-                        for (int j = 0; j < bub.lme.size() - 1; j++) {
-                            Line oL = new Line(bub.lme.get(j), bub.lme.get(j + 1));
-                            oL.setLine(iOneBubCorrected, 255);
-                        }
-                        Line oL = new Line(bub.lme.get(0), bub.lme.get(bub.lme.size() - 1));
-                        oL.setLine(iOneBubCorrected, 255);
-                        MatrixEntry meCenter = MatrixEntry.getMeanEntry(bub.lme);
-                        iOneBubCorrected.setPoints(new Morphology().markFillN4(iOneBubCorrected, meCenter.i, meCenter.j), 255);
-                        iOneBubCorrected.setPoints(Structure.loPoints, 255);
-                        iOneBubCorrected.resetMarkers();
-                        in.remove(0);
-                        Structure = new ArbStructure2((new Morphology()).markFillN8(iOneBubCorrected, meCenter.i, meCenter.j, (pParameter) -> {
-                            if (iOneBubCorrected.iaPixels[pParameter.i][pParameter.j] == 255) {
-                                return true;
-                            } else {
-                                return false;
+                    if (in.size() > 0) {
+                        if (in.get(0).ID == i) {
+                            ImageInt iOneBubCorrected = new ImageInt(iMask1.iaPixels.length, iMask1.iaPixels[0].length, 0);
+                            BubbleJSON bub = in.get(0);
+                            for (int j = 0; j < bub.lme.size() - 1; j++) {
+                                Line oL = new Line(bub.lme.get(j), bub.lme.get(j + 1));
+                                oL.setLine(iOneBubCorrected, 255);
                             }
-                        }));
+                            Line oL = new Line(bub.lme.get(0), bub.lme.get(bub.lme.size() - 1));
+                            oL.setLine(iOneBubCorrected, 255);
+                            MatrixEntry meCenter = MatrixEntry.getMeanEntry(bub.lme);
+                            iOneBubCorrected.setPoints(new Morphology().markFillN4(iOneBubCorrected, meCenter.i, meCenter.j), 255);
+                            iOneBubCorrected.setPoints(Structure.loPoints, 255);
+                            iOneBubCorrected.resetMarkers();
+                            in.remove(0);
+                            Structure = new ArbStructure2((new Morphology()).markFillN8(iOneBubCorrected, meCenter.i, meCenter.j, (pParameter) -> {
+                                if (iOneBubCorrected.iaPixels[pParameter.i][pParameter.j] == 255) {
+                                    return true;
+                                } else {
+                                    return false;
+                                }
+                            }));
+                        }
                     }
                     ImageInt iOneBub = new ImageInt(iMask1.iaPixels.length, iMask1.iaPixels[0].length, 0);
                     iOneBub.setPoints(Structure.loPoints, 255);
                     List<MatrixEntry> lmeBorder = Structure.getBorderPoints(iOneBub);
+                    if (Structure.loPoints.size()<2){
+                        continue;
+                    }
+                    if (lmeBorder.size()>2){
                     Structure.loPoints = lmeBorder;
                     Structure.getMajorMinor(lmeBorder);
-
+                    } else {
+                        Structure.getMajorMinor(Structure.loPoints);
+                    }
                     Structure.dAvergeGreyDerivative = dAvGrad;
                     lsArbstruc.add(Structure);
                 }
             }
-//            controller.getDataBUB().results_Arb = new OpenTIV_Edges.ReturnContainer_ArbStruc(lsArbstruc, readFirst);
 
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Prot_tivPIVBUBBubbleFinder.class.getName()).log(Level.SEVERE, null, ex);
@@ -282,14 +280,14 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         return lsArbstruc;
     }
 
-    public static List<Circle> getBoundEllipses(ImageInt iMask, ImageInt iGrad) throws IOException {
+    public static List<Shape> getBoundEllipses(ImageInt iMask, ImageInt iGrad) throws IOException {
         ImageInt Input = iMask.clone();
         ImageInt oOuterEdges = BasicIMGOper.threshold(iMask.clone(), 1);
         ImageInt oOuterEdges2 = BasicIMGOper.threshold(iMask.clone(), 254);
         Morphology.markEdgesBinarizeImage(oOuterEdges);
         Morphology.markEdgesBinarizeImage(oOuterEdges2);
 
-        List<Circle> lCircles = new ArrayList<>();
+        List<Shape> lCircles = new ArrayList<>();
 
         for (int i = 0; i < iMask.iaPixels.length; i++) {
             for (int j = 0; j < iMask.iaPixels[0].length; j++) {
@@ -352,35 +350,6 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
         return lCircles;
     }
-//    @Override
-//    public void run(Object... input) throws UnableToRunException {
-//        PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
-//        ImageInt readFirst = new ImageInt(controller.getDataPIV().iaReadInFirst);
-//        ImageInt readSecond = new ImageInt(controller.getDataPIV().iaReadInSecond);
-//        edges1st = OpenTIV_Edges.performEdgeDetecting(this, readFirst);
-//        edges2nd = OpenTIV_Edges.performEdgeDetecting(this, readFirst);
-//        controller.getDataBUB().iaEdgesRAWFirst = edges1st.clone().iaPixels;
-//        controller.getDataBUB().iaEdgesRAWSecond = edges2nd.clone().iaPixels;
-//        if(edges1st!=null){
-//            edges1st = OpenTIV_Edges.performEdgeOperations(this, edges1st, readFirst);
-//            if(Boolean.valueOf(getSettingsValue("EllipseFit_Ziegenhein2019").toString())){
-//                controller.getDataBUB().results_EFit = OpenTIV_Edges.performShapeFitting(this, edges1st);
-//                shapeFit = controller.getDataBUB().results_EFit.oImage;
-//            }
-//            controller.getDataBUB().iaEdgesFirst = edges1st.iaPixels;            
-//        }else{
-//            edges1st = null;
-//        }
-//        if(edges2nd!=null){
-//            edges2nd = OpenTIV_Edges.performEdgeOperations(this, edges2nd, readSecond);
-//            controller.getDataBUB().iaEdgesSecond= edges2nd.iaPixels;
-//        }else{
-//            edges2nd = null;
-//        }                                        
-//        
-//        buildLookUp();
-//        
-//    }
 
     @Override
     public Object[] getResults() {
