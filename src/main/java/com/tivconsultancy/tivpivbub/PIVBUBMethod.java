@@ -49,39 +49,38 @@ public class PIVBUBMethod extends PIVMethod {
             getProtocol("preproc").run(getProtocol("read").getResults());
             Object[] prepr = getProtocol("preproc").getResults();
 
-            if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true || getProtocol("bubblefinder").getSettingsValue("Reco") == "Read Mask and Points"
-                    || getProtocol("bubblefinder").getSettingsValue("Reco") == "Read Mask and Ellipse fit") {
+            if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true || getProtocol("bubblefinder").getSettingsValue("Reco").toString().contains("ReadMaskandPoints")
+                    || getProtocol("bubblefinder").getSettingsValue("Reco").toString().contains("Read_Mask_and_Ellipse_fit")) {
                 getProtocol("mask").run(new Object[]{prepr[0], prepr[1], imageFile1, imageFile2, prepr[2]});
+                System.out.println("Finished Masking in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
+                        + " seconds ");
+                dTimer1 = System.currentTimeMillis();
             }
-            System.out.println("Finished Masking in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
-                    + " seconds ");
-            dTimer1 = System.currentTimeMillis();
+
             if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
                 PIVStaticReferences.calcIntensityValues(((PIVController) StaticReferences.controller).getDataPIV());
                 getProtocol("inter areas").run();
                 getProtocol("calculate").run();
                 getProtocol("display").run();
+                System.out.println("Finished PIV interrogation in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
+                        + " seconds ");
+                dTimer1 = System.currentTimeMillis();
             }
-            System.out.println("Finished PIV interrogation in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
-                    + " seconds ");
-            dTimer1 = System.currentTimeMillis();
 
             getProtocol("bubblefinder").run();
             System.out.println("Finished Bubble Identification in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
                     + " seconds ");
 
-            if (getProtocol("bubtrack").getSettingsValue("Tracking") != "Disable Tracking") {
+            if (!getProtocol("bubtrack").getSettingsValue("Tracking").toString().contains("Disable_Tracking")) {
                 dTimer1 = System.currentTimeMillis();
                 getProtocol("bubtrack").run();
                 getProtocol("result").run();
                 System.out.println("Finished Tracking in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
                         + " seconds ");
-                if ((boolean) getProtocol("system").getSettingsValue("tivGUI_dataDraw")) {
-                    getProtocol("AIPost").run();
-                }
-
             }
-
+            if ((boolean) getProtocol("system").getSettingsValue("tivGUI_dataDraw")) {
+                getProtocol("AIPost").run();
+            }
             getProtocol("data").run();
             for (NameSpaceProtocolResults1D e : getProtocol("data").get1DResultsNames()) {
                 StaticReferences.controller.get1DResults().setResult(e.toString(), getProtocol("data").getOverTimesResult(e));

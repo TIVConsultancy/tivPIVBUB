@@ -108,7 +108,7 @@ public class Prot_tivPIVBUBBubbleTracking extends Protocol {
             HashMap<CPXTr, Shape> map = new HashMap<CPXTr, Shape>();
             contours1 = new ImageInt(blackboard.iaPixels.length, blackboard.iaPixels[0].length);
             contours2 = new ImageInt(blackboard.iaPixels.length, blackboard.iaPixels[0].length);
-            if (control.getCurrentMethod().getProtocol("bubblefinder").getSettingsValue("Reco") != "Read Mask and Points") {
+            if (!control.getCurrentMethod().getProtocol("bubblefinder").getSettingsValue("Reco").toString().contains("ReadMaskandPoints")) {
                 ImageInt iMask1 = (ImageInt) control.getCurrentMethod().getProtocol("mask").getResults()[1];
                 ImageInt iMask2 = (ImageInt) control.getCurrentMethod().getProtocol("mask").getResults()[2];
 
@@ -132,14 +132,14 @@ public class Prot_tivPIVBUBBubbleTracking extends Protocol {
                     contours2.setPoints(cpx.getPointsME(), 255);
                 }
             }
-            
-            if (sMethod == "NearestNeighbor Tracking") {
+
+            if (sMethod.toString().contains("Nearest_Neighbor_Tracking")) {
                 System.out.println("Simple Tracking with " + lCPXTr1.size() + " to " + lCPXTr2.size() + " trackable shapes");
                 Map<CPXTr, VelocityVec> oVelocityVectors = simpleTrackingStructs(lCPXTr1, lCPXTr2);
                 control.getDataBUB().results_BT = new ReturnContainerBoundaryTracking(oVelocityVectors, lCPXTr1, lCPXTr2);
             }
 
-            if (sMethod == "Boundary Tracking") {
+            if (sMethod.toString().contains("Boundary Tracking")) {
                 System.out.println("Boundary Tracking with " + lCPXTr1.size() + " to " + lCPXTr2.size() + " trackable shapes");
                 control.getDataBUB().results_BT = BoundTrackZiegenhein_2018.runBoundTrack(this, lCPXTr1, lCPXTr2, oGrid, map);
             }
@@ -264,7 +264,6 @@ public class Prot_tivPIVBUBBubbleTracking extends Protocol {
 //        }
 //        return oVelocityVectors;
 //    }
-
     public Map<CPXTr, VelocityVec> simpleTrackingStructs(List<CPXTr> lCPXTr1, List<CPXTr> lCPXTr2) {
         int YPlus = -1 * (Integer) this.getSettingsValue("BUBSRadiusYPlus");
         int YMinus = -1 * (Integer) this.getSettingsValue("BUBSRadiusYMinus");
@@ -350,13 +349,7 @@ public class Prot_tivPIVBUBBubbleTracking extends Protocol {
     }
 
     public EnumObject getMaxVecLength(List<VelocityVec> oVeloVecs) throws EmptySetException {
-        EnumObject o = Sorting.getMaxCharacteristic(oVeloVecs, new Sorting.Characteristic() {
-
-            @Override
-            public Double getCharacteristicValue(Object pParameter) {
-                return ((VelocityVec) pParameter).opUnitTangent.dValue;
-            }
-        });
+        EnumObject o = Sorting.getMaxCharacteristic(oVeloVecs, pParameter -> ((VelocityVec) pParameter).opUnitTangent.dValue);
         return o;
     }
 
@@ -425,8 +418,9 @@ public class Prot_tivPIVBUBBubbleTracking extends Protocol {
         ls.add(new SettingObject("Colorbar", "tivBUBColBar", "Pink", SettingObject.SettingsType.String));
         ls.add(new SettingObject("Colorbar", "tivBUBColBar", "WarmToColdRainbow", SettingObject.SettingsType.String));
         ls.add(new SettingObject("Colorbar", "tivBUBColBar", "darkGreen", SettingObject.SettingsType.String));
+        ls.add(new SettingObject("Bubble Tracking", "Tracking", "Disable_Tracking", SettingObject.SettingsType.String));
         ls.add(new SettingObject("Bubble Tracking", "Tracking", "Boundary Tracking", SettingObject.SettingsType.String));
-        ls.add(new SettingObject("Bubble Tracking", "Tracking", "NearestNeighbor Tracking", SettingObject.SettingsType.String));
+        ls.add(new SettingObject("Bubble Tracking", "Tracking", "Nearest_Neighbor_Tracking", SettingObject.SettingsType.String));
         return ls;
     }
 
@@ -462,9 +456,9 @@ public class Prot_tivPIVBUBBubbleTracking extends Protocol {
         this.loSettings.add(new SettingObject("Search Radius Y Min", "BUBSRadiusYMinus", 5, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Search Radius X Max", "BUBSRadiusXPlus", 20, SettingObject.SettingsType.Integer));
         this.loSettings.add(new SettingObject("Search Radius X Min", "BUBSRadiusXMinus", -20, SettingObject.SettingsType.Integer));
-        this.loSettings.add(new SettingObject("Bubble Tracking", "Tracking", "Disable Tracking", SettingObject.SettingsType.String));
+        this.loSettings.add(new SettingObject("Bubble Tracking", "Tracking", "Default(Disable_Tracking)", SettingObject.SettingsType.String));
 //        this.loSettings.add(new SettingObject("Boundary Tracking", "BoundTrack", false, SettingObject.SettingsType.Boolean));
-//        this.loSettings.add(new SettingObject("NearestNeighbor Tracking", "SimpleTracking", false, SettingObject.SettingsType.Boolean));
+//        this.loSettings.add(new SettingObject("Nearest_Neighbor_Tracking", "SimpleTracking", false, SettingObject.SettingsType.Boolean));
     }
 
     @Override

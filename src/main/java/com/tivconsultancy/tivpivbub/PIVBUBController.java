@@ -40,7 +40,7 @@ public class PIVBUBController extends PIVController {
     @Override
     public void startNewIndexStep() {
         DataBUB databaseBUBPrevStep = new DataBUB(0);
-        boolean bTrack = this.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("Tracking") == "Disable Tracking" ? false : true;
+        boolean bTrack = this.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("Tracking") == "Disable_Tracking" ? false : true;
         if (this.neglect_prevStep) {
             this.databaseBUB1Step.results_Shape_2nd = null;
             this.neglect_prevStep=false;

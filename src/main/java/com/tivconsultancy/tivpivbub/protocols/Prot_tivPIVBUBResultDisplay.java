@@ -97,13 +97,16 @@ public class Prot_tivPIVBUBResultDisplay extends Protocol implements Serializabl
     @Override
     public void run(Object... input) throws UnableToRunException {
         PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
-        
+
         List<VelocityVec> vecs = new ArrayList<>(controller.getDataBUB().results.values());
         Colorbar oColBar;
         ImageInt res = (ImageInt) controller.getCurrentMethod().getProtocol("preproc").getResults()[0];
         imgResult = res.getBuffImage();
         try {
-            double maxVecLength = (double) (Integer) controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BUBSRadiusYPlus");
+            int YPlus = Math.abs((Integer) controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BUBSRadiusYPlus"));
+            int YMinus = Math.abs((Integer) controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BUBSRadiusYMinus"));
+            double maxVecLength = YPlus > YMinus ? YPlus : YMinus;
+//            double maxVecLength = Math.abs((double) (Integer) controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BUBSRadiusYPlus"));
             double StretchFactor = 100.0 / maxVecLength;
             oColBar = new Colorbar.StartEndLinearColorBar(0.0, maxVecLength, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
             imgResult = PaintVectors.paintOnImage(vecs, oColBar, imgResult, null, StretchFactor);

@@ -25,6 +25,8 @@ import com.tivconsultancy.opentiv.imageproc.shapes.ArbStructure2;
 import com.tivconsultancy.opentiv.imageproc.shapes.Circle;
 import com.tivconsultancy.opentiv.imageproc.shapes.Line;
 import com.tivconsultancy.opentiv.imageproc.shapes.Shape;
+import com.tivconsultancy.opentiv.math.primitives.OrderedPair;
+import com.tivconsultancy.opentiv.physics.vectors.VelocityVec;
 import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpivbub.PIVBUBController;
 import com.tivconsultancy.tivpivbub.data.DataBUB.BubbleJSON;
@@ -95,18 +97,18 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
     @Override
     public void run(Object... input) throws UnableToRunException {
-        
+
         PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
         List<ImagePath> sNames = controller.getCurrentMethod().getInputImages();
         ImageInt readFirst = new ImageInt(controller.getDataPIV().iaReadInFirst);
         String sPath = controller.getCurrentFileSelected().getParent();
         String sFolder = (String) controller.getCurrentMethod().getProtocol("mask").getSettingsValue("mask_Path");
-        boolean bTracking = controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("Tracking") == "Disable Tracking" ? false : true;
+        boolean bTracking = controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("Tracking").toString().contains("Disable_Tracking") ? false : true;
         //******Method 1*******
-        if (this.getSettingsValue("Reco") == "Edge Detector and Ellipse fit") {
+        if (this.getSettingsValue("Reco").toString().contains("Edge_Detector_and_Ellipse_fit")) {
 
             if (controller.getDataBUB().results_Shape_2nd == null) {
-                System.out.println("Bubble Identification using Edge Detector and Ellipse fit");
+                System.out.println("Bubble Identification using Edge_Detector_and_Ellipse_fit");
                 edges1st = OpenTIV_Edges.performEdgeDetecting(this, readFirst);
                 controller.getDataBUB().iaEdgesRAWFirst = edges1st.clone().iaPixels;
                 edges1st = OpenTIV_Edges.performEdgeOperations(this, edges1st, readFirst);
@@ -125,7 +127,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
             }
 
             //******Method 2*******
-        } else if (this.getSettingsValue("Reco") == "Read Mask and Ellipse fit") {
+        } else if (this.getSettingsValue("Reco").toString().contains("Read_Mask_and_Ellipse_fit")) {
 
             if (controller.getDataBUB().results_Shape_2nd == null) {
                 System.out.println("Bubble Identification using given Mask and Ellipse fit");
@@ -159,7 +161,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
             }
 
             //******Method 3*******
-        } else if (this.getSettingsValue("Reco") == "Read Mask and Points") {
+        } else if (this.getSettingsValue("Reco").toString().contains("ReadMaskandPoints")) {
 
             if (controller.getDataBUB().results_Shape_2nd == null) {
                 System.out.println("Bubble Identification using given Mask and Points");
@@ -185,8 +187,11 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         if (controller.getDataBUB().results_Shape != null) {
             for (Shape o : controller.getDataBUB().results_Shape.loShapes) {
                 readFirst.setPoints(o.getlmeList(), 255);
+                if (!bTracking) {                   
+                    controller.getDataBUB().results.put(o, new VelocityVec(0.0, 0.0, o.getSubPixelCenter()));
+                }
             }
-            
+
         }
 
         shapeFit = readFirst;
@@ -258,12 +263,12 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                     ImageInt iOneBub = new ImageInt(iMask1.iaPixels.length, iMask1.iaPixels[0].length, 0);
                     iOneBub.setPoints(Structure.loPoints, 255);
                     List<MatrixEntry> lmeBorder = Structure.getBorderPoints(iOneBub);
-                    if (Structure.loPoints.size()<2){
+                    if (Structure.loPoints.size() < 2) {
                         continue;
                     }
-                    if (lmeBorder.size()>2){
-                    Structure.loPoints = lmeBorder;
-                    Structure.getMajorMinor(lmeBorder);
+                    if (lmeBorder.size() > 2) {
+                        Structure.loPoints = lmeBorder;
+                        Structure.getMajorMinor(lmeBorder);
                     } else {
                         Structure.getMajorMinor(Structure.loPoints);
                     }
@@ -390,7 +395,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         this.loSettings.add(new SettingObject("ThresWeakEdges", "ThresWeakEdges", 180, SettingObject.SettingsType.Integer));
 
         //Shape Fitting
-        this.loSettings.add(new SettingObject("Method", "Reco", "Read Mask and Points", SettingObject.SettingsType.String));
+        this.loSettings.add(new SettingObject("Method", "Reco", "Default(ReadMaskandPoints)", SettingObject.SettingsType.String));
         //this.loSettings.add(new SettingObject("Ellipse Fit", "EllipseFit_Ziegenhein2019", false, SettingObject.SettingsType.Boolean));
         this.loSettings.add(new SettingObject("Distance", "EllipseFit_Ziegenhein2019_Distance", 50, SettingObject.SettingsType.Double));
         this.loSettings.add(new SettingObject("Leading Size", "EllipseFit_Ziegenhein2019_LeadingSize", 30, SettingObject.SettingsType.Double));
@@ -445,8 +450,9 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
     @Override
     public List<SettingObject> getHints() {
         List<SettingObject> ls = super.getHints();
-        ls.add(new SettingObject("Method", "Reco", "Read Mask and Ellipse fit", SettingObject.SettingsType.String));
-        ls.add(new SettingObject("Method", "Reco", "Edge Detector and Ellipse fit", SettingObject.SettingsType.String));
+        ls.add(new SettingObject("Method", "Reco", "ReadMaskandPoints", SettingObject.SettingsType.String));
+        ls.add(new SettingObject("Method", "Reco", "Read_Mask_and_Ellipse_fit", SettingObject.SettingsType.String));
+        ls.add(new SettingObject("Method", "Reco", "Edge_Detector_and_Ellipse_fit", SettingObject.SettingsType.String));
 
         return ls;
     }
