@@ -118,10 +118,10 @@ public class DataBUB implements DataBaseEntry, Serializable, ResultsImageShowAbl
             this.XPoints = XPoints;
         }
 
-        public void createLme() {
+        public void createLme(int[] iCuts) {
             this.lme = new ArrayList<>();
             for (int i = 0; i < YPoints.length; i++) {
-                lme.add(new MatrixEntry(YPoints[i], XPoints[i]));
+                lme.add(new MatrixEntry(YPoints[i]-iCuts[0], XPoints[i]-iCuts[2]));
             }
         }
     }

@@ -11,6 +11,7 @@ import com.google.gson.stream.JsonReader;
 import com.tivconsultancy.opentiv.edgedetector.OpenTIV_Edges;
 import com.tivconsultancy.opentiv.helpfunctions.matrix.MatrixEntry;
 import com.tivconsultancy.opentiv.helpfunctions.settings.SettingObject;
+import com.tivconsultancy.opentiv.helpfunctions.settings.Settings;
 import com.tivconsultancy.opentiv.helpfunctions.settings.SettingsCluster;
 import com.tivconsultancy.opentiv.highlevel.protocols.NameSpaceProtocolResults1D;
 import com.tivconsultancy.opentiv.highlevel.protocols.Protocol;
@@ -20,6 +21,7 @@ import static com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EdgeDet
 import com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.EllipseDetection;
 import com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.Morphology;
 import com.tivconsultancy.opentiv.imageproc.algorithms.algorithms.N8;
+import com.tivconsultancy.opentiv.imageproc.img_io.IMG_Writer;
 import com.tivconsultancy.opentiv.imageproc.primitives.ImageInt;
 import com.tivconsultancy.opentiv.imageproc.shapes.ArbStructure2;
 import com.tivconsultancy.opentiv.imageproc.shapes.Circle;
@@ -27,11 +29,13 @@ import com.tivconsultancy.opentiv.imageproc.shapes.Line;
 import com.tivconsultancy.opentiv.imageproc.shapes.Shape;
 import com.tivconsultancy.opentiv.math.primitives.OrderedPair;
 import com.tivconsultancy.opentiv.physics.vectors.VelocityVec;
+import com.tivconsultancy.opentiv.preprocessor.OpenTIV_PreProc;
 import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpivbub.PIVBUBController;
 import com.tivconsultancy.tivpivbub.data.DataBUB.BubbleJSON;
 import delete.com.tivconsultancy.opentiv.devgui.main.ImagePath;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -169,7 +173,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                 grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 0);
                 ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[1];
                 String sName = sNames.get(0).toString().substring(0, sNames.get(0).toString().indexOf("."));
-                controller.getDataBUB().results_Shape = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucs(iMask1, grad, sName, sPath, sFolder), readFirst);
+                controller.getDataBUB().results_Shape = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucs(iMask1, grad, sName, sPath, sFolder, controller), readFirst);
             } else {
                 controller.getDataBUB().results_Shape = controller.getDataBUB().results_Shape_2nd;
             }
@@ -180,14 +184,14 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                 ImageInt grad = new ImageInt(readSecond.iaPixels.length, readSecond.iaPixels[0].length);
                 grad.iaPixels = getThinEdge(readSecond.iaPixels, Boolean.FALSE, null, null, 0);
                 String sName = sNames.get(1).toString().substring(0, sNames.get(1).toString().indexOf("."));
-                controller.getDataBUB().results_Shape_2nd = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucs(iMask1, grad, sName, sPath, sFolder), readSecond);
+                controller.getDataBUB().results_Shape_2nd = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucs(iMask1, grad, sName, sPath, sFolder, controller), readSecond);
 
             }
         }
         if (controller.getDataBUB().results_Shape != null) {
             for (Shape o : controller.getDataBUB().results_Shape.loShapes) {
                 readFirst.setPoints(o.getlmeList(), 255);
-                if (!bTracking) {                   
+                if (!bTracking) {
                     controller.getDataBUB().results.put(o, new VelocityVec(0.0, 0.0, o.getSubPixelCenter()));
                 }
             }
@@ -199,8 +203,21 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
     }
 
-    public static List<Shape> getArbStrucs(ImageInt iMask1, ImageInt grad, String sName, String sPath, String sFolder) {
+    public static List<Shape> getArbStrucs(ImageInt iMask1, ImageInt grad, String sName, String sPath, String sFolder, PIVBUBController controller) {
+        List<SettingObject> lsc1 = controller.getCurrentMethod().getProtocol("preproc").getAllSettings();
+        Settings oSet = new Settings() {
+            @Override
+            public String getType() {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
 
+            @Override
+            public void buildClusters() {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+        };
+        oSet.loSettings.addAll(lsc1);
+        int[] iCuts = getCut(oSet);
         List<Shape> lsArbstruc = new ArrayList<>();
         Gson gson = new Gson();
         try {
@@ -209,7 +226,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
             }.getType());
             reader.close();
             for (BubbleJSON bubbleJSON : in) {
-                bubbleJSON.createLme();
+                bubbleJSON.createLme(iCuts);
             }
             //Ascending bubbleJSON.ID order              
             for (int i = 1; i <= iMask1.getMax(); i++) {
@@ -238,7 +255,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                     dAvGrad = dAvGrad / dCounter;
                     if (in.size() > 0) {
                         if (in.get(0).ID == i) {
-                            ImageInt iOneBubCorrected = new ImageInt(iMask1.iaPixels.length, iMask1.iaPixels[0].length, 0);
+                            ImageInt iOneBubCorrected = new ImageInt(iMask1.iaPixels.length, iMask1.iaPixels[0].length);
                             BubbleJSON bub = in.get(0);
                             for (int j = 0; j < bub.lme.size() - 1; j++) {
                                 Line oL = new Line(bub.lme.get(j), bub.lme.get(j + 1));
@@ -260,7 +277,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                             }));
                         }
                     }
-                    ImageInt iOneBub = new ImageInt(iMask1.iaPixels.length, iMask1.iaPixels[0].length, 0);
+                    ImageInt iOneBub = new ImageInt(iMask1.iaPixels.length, iMask1.iaPixels[0].length);
                     iOneBub.setPoints(Structure.loPoints, 255);
                     List<MatrixEntry> lmeBorder = Structure.getBorderPoints(iOneBub);
                     if (Structure.loPoints.size() < 2) {
@@ -356,6 +373,29 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         return lCircles;
     }
 
+    public static int[] getCut(Settings oSettings) {
+        boolean bCutTop = ((boolean) oSettings.getSettingsValue("BcutyTop"));
+        boolean bCutBottom = ((boolean) oSettings.getSettingsValue("BcutyBottom"));
+        boolean bCutLeft = ((boolean) oSettings.getSettingsValue("BcutxLeft"));
+        boolean bCutRight = ((boolean) oSettings.getSettingsValue("BcutxRight"));
+        int[] iCuts = new int[]{0, 0, 0, 0};
+        if (bCutTop) {
+            iCuts[0] = (int) oSettings.getSettingsValue("cutyTop");
+        }
+        if (bCutBottom) {
+            iCuts[1] = (int) oSettings.getSettingsValue("cutyBottom");
+
+        }
+        if (bCutLeft) {
+            iCuts[2] = (int) oSettings.getSettingsValue("cutxLeft");
+        }
+        if (bCutRight) {
+            iCuts[3] = (int) oSettings.getSettingsValue("cutxRight");
+
+        }
+        return iCuts;
+    }
+
     @Override
     public Object[] getResults() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
@@ -369,6 +409,9 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
     private void initSettins() {
         this.loSettings.add(new SettingObject("Execution Order", "ExecutionOrder", new ArrayList<>(), SettingObject.SettingsType.Object));
 
+        //PreProc for Bubble Finder
+        this.loSettings.add(new SettingObject("LinNormalization", "LinNormalization", false, SettingObject.SettingsType.Boolean));
+        this.loSettings.add(new SettingObject("NonLinNormalization", "NonLinNormalization", false, SettingObject.SettingsType.Boolean));
         //Edge Detectors
         this.loSettings.add(new SettingObject("Edge Detector", "OuterEdges", true, SettingObject.SettingsType.Boolean));
         this.loSettings.add(new SettingObject("Threshold", "OuterEdgesThreshold", 127, SettingObject.SettingsType.Integer));
@@ -424,6 +467,11 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                 new String[]{"Reco"}, this);
         bubbleIdent.setDescription("Method to find Bubbles");
         lsClusters.add(bubbleIdent);
+
+        SettingsCluster bubImgPreproc = new SettingsCluster("Bubble Preproc",
+                new String[]{"LinNormalization", "NonLinNormalization"}, this);
+        bubImgPreproc.setDescription("Bubble Image Preprocessing");
+        lsClusters.add(bubImgPreproc);
 
         SettingsCluster edgeDetector = new SettingsCluster("Edge Detector",
                 new String[]{"OuterEdges", "OuterEdgesThreshold"}, this);

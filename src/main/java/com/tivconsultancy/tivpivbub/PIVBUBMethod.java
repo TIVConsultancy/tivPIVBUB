@@ -47,11 +47,10 @@ public class PIVBUBMethod extends PIVMethod {
             double dTimer1 = System.currentTimeMillis();
             getProtocol("read").run(new Object[]{imageFile1, imageFile2});
             getProtocol("preproc").run(getProtocol("read").getResults());
-            Object[] prepr = getProtocol("preproc").getResults();
 
             if ((boolean) getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true || getProtocol("bubblefinder").getSettingsValue("Reco").toString().contains("ReadMaskandPoints")
                     || getProtocol("bubblefinder").getSettingsValue("Reco").toString().contains("Read_Mask_and_Ellipse_fit")) {
-                getProtocol("mask").run(new Object[]{prepr[0], prepr[1], imageFile1, imageFile2, prepr[2]});
+                getProtocol("mask").run();
                 System.out.println("Finished Masking in " + ((System.currentTimeMillis() - dTimer1) / 1000.0)
                         + " seconds ");
                 dTimer1 = System.currentTimeMillis();

@@ -6,7 +6,6 @@
 package com.tivconsultancy.tivpivbub.protocols;
 
 import com.tivconsultancy.opentiv.helpfunctions.io.Writer;
-import com.tivconsultancy.opentiv.helpfunctions.matrix.MatrixEntry;
 import com.tivconsultancy.opentiv.helpfunctions.settings.SettingObject;
 import com.tivconsultancy.opentiv.helpfunctions.settings.SettingsCluster;
 import com.tivconsultancy.opentiv.highlevel.protocols.NameSpaceProtocolResults1D;
@@ -313,7 +312,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
 //        DataPIV data = ((PIVController) StaticReferences.controller).getDataPIV();
 //        return data.oGrid.getVeloGrid();
         DataPIV data = ((PIVController) StaticReferences.controller).getDataPIV();
-        ImageInt oSourceImage = new ImageInt(data.iaReadInFirst);
+        ImageInt oSourceImage = new ImageInt(data.iaPreProcFirst);
         double dSize = data.oGrid.getCellSize();
         int iOffSet = 0;
         if ("50Overlap".equals(data.sGridType)) {
