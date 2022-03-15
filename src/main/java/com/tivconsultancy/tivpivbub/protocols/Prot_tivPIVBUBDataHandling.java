@@ -192,7 +192,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                     DataPIV dataPIV = ((PIVBUBController) StaticReferences.controller).getDataPIV();
                     for (Vector v : dataPIV.oGrid.getVectors()) {
                         float dPosX = (float) ((v.getPosX() - refPX_X) * dResolution + refM_X);
-                        float dPosY = (float) ((v.getPosY() - refPX_Y) * dResolution + refM_Y);
+                        float dPosY = (float) (-(v.getPosY() - refPX_Y) * dResolution + refM_Y);
                         float dPosYPx = (float) v.getPosY();
                         float dPosXPx = (float) v.getPosX();
                         float dPosZ = (float) refM_Z;
@@ -215,7 +215,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                 }
                 for (Map.Entry<Shape, VelocityVec> m : dataBUB.results.entrySet()) {
                     float dPosX = (float) ((m.getValue().getPosX() - refPX_X) * dResolution + refM_X);
-                    float dPosY = (float) ((m.getValue().getPosY() - refPX_Y) * dResolution + refM_Y);
+                    float dPosY = (float) (-(m.getValue().getPosY() - refPX_Y) * dResolution + refM_Y);
                     float dPosZ = (float) refM_Z;
                     float dVX = 0;
                     float dVY = 0;

@@ -100,17 +100,22 @@ public class Prot_tivPIVBUBResultDisplay extends Protocol implements Serializabl
 
         List<VelocityVec> vecs = new ArrayList<>(controller.getDataBUB().results.values());
         Colorbar oColBar;
-        ImageInt res = (ImageInt) controller.getCurrentMethod().getProtocol("preproc").getResults()[0];
+//        ImageInt res = (ImageInt) controller.getCurrentMethod().getProtocol("preproc").getResults()[0];
+        DataPIV data = ((PIVController) StaticReferences.controller).getDataPIV();
+        ImageInt res = new ImageInt(data.iaReadInFirst);
         imgResult = res.getBuffImage();
         try {
-            int YPlus = Math.abs((Integer) controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BUBSRadiusYPlus"));
-            int YMinus = Math.abs((Integer) controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BUBSRadiusYMinus"));
-            double maxVecLength = YPlus > YMinus ? YPlus : YMinus;
+//            int YPlus = Math.abs((Integer) controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BUBSRadiusYPlus"));
+//            int YMlinus = Math.abs((Integer) controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BUBSRadiusYMinus"));
+            double maxVecLength = (Double) controller.getCurrentMethod().getProtocol("display").getSettingsValue("MaxDisp");
 //            double maxVecLength = Math.abs((double) (Integer) controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("BUBSRadiusYPlus"));
-            double StretchFactor = 100.0 / maxVecLength;
+
+            double StretchFactor = data.dStretch;
+            StretchFactor = StretchFactor / 4.0;
+                maxVecLength = maxVecLength * 4.0;
             oColBar = new Colorbar.StartEndLinearColorBar(0.0, maxVecLength, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
             imgResult = PaintVectors.paintOnImage(vecs, oColBar, imgResult, null, StretchFactor);
-            DataPIV data = ((PIVController) StaticReferences.controller).getDataPIV();
+
             if ((boolean) controller.getCurrentMethod().getProtocol("inter areas").getSettingsValue("PIV_Interrogation")) {
                 StretchFactor = StretchFactor * 4.0;
                 maxVecLength = maxVecLength / 4.0;

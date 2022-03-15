@@ -105,6 +105,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
         List<ImagePath> sNames = controller.getCurrentMethod().getInputImages();
         ImageInt readFirst = new ImageInt(controller.getDataPIV().iaReadInFirst);
+        ImageInt grad = new ImageInt(readFirst.iaPixels.length, readFirst.iaPixels[0].length);
         String sPath = controller.getCurrentFileSelected().getParent();
         String sFolder = (String) controller.getCurrentMethod().getProtocol("mask").getSettingsValue("mask_Path");
         boolean bTracking = controller.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("Tracking").toString().contains("Disable_Tracking") ? false : true;
@@ -135,8 +136,9 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
             if (controller.getDataBUB().results_Shape_2nd == null) {
                 System.out.println("Bubble Identification using given Mask and Ellipse fit");
-                ImageInt grad = new ImageInt(readFirst.iaPixels.length, readFirst.iaPixels[0].length);
-                grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 0);
+                
+                grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 1);
+                
                 ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[1];
                 try {
                     List<Shape> lsC = getBoundEllipses(iMask1, grad);
@@ -151,8 +153,8 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
             if (bTracking) {
                 ImageInt readSecond = new ImageInt(controller.getDataPIV().iaReadInSecond);
-                ImageInt grad = new ImageInt(readSecond.iaPixels.length, readSecond.iaPixels[0].length);
-                grad.iaPixels = getThinEdge(readSecond.iaPixels, Boolean.FALSE, null, null, 0);
+                //ImageInt grad = new ImageInt(readSecond.iaPixels.length, readSecond.iaPixels[0].length);
+                grad.iaPixels = getThinEdge(readSecond.iaPixels, Boolean.FALSE, null, null, 1);
                 ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[2];
                 try {
                     List<Shape> lsC = getBoundEllipses(iMask1, grad);
@@ -169,8 +171,8 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
             if (controller.getDataBUB().results_Shape_2nd == null) {
                 System.out.println("Bubble Identification using given Mask and Points");
-                ImageInt grad = new ImageInt(readFirst.iaPixels.length, readFirst.iaPixels[0].length);
-                grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 0);
+                //ImageInt grad = new ImageInt(readFirst.iaPixels.length, readFirst.iaPixels[0].length);
+                grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 1);
                 ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[1];
                 String sName = sNames.get(0).toString().substring(0, sNames.get(0).toString().indexOf("."));
                 controller.getDataBUB().results_Shape = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucs(iMask1, grad, sName, sPath, sFolder, controller), readFirst);
@@ -181,8 +183,8 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
             if (bTracking) {
                 ImageInt readSecond = new ImageInt(controller.getDataPIV().iaReadInSecond);
                 ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[2];
-                ImageInt grad = new ImageInt(readSecond.iaPixels.length, readSecond.iaPixels[0].length);
-                grad.iaPixels = getThinEdge(readSecond.iaPixels, Boolean.FALSE, null, null, 0);
+                //ImageInt grad = new ImageInt(readSecond.iaPixels.length, readSecond.iaPixels[0].length);
+                grad.iaPixels = getThinEdge(readSecond.iaPixels, Boolean.FALSE, null, null, 1);
                 String sName = sNames.get(1).toString().substring(0, sNames.get(1).toString().indexOf("."));
                 controller.getDataBUB().results_Shape_2nd = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucs(iMask1, grad, sName, sPath, sFolder, controller), readSecond);
 
@@ -228,7 +230,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
             for (BubbleJSON bubbleJSON : in) {
                 bubbleJSON.createLme(iCuts);
             }
-            //Ascending bubbleJSON.ID order              
+            //Ascending bubbleJSON.ID order    
             for (int i = 1; i <= iMask1.getMax(); i++) {
 
                 MatrixEntry meStart = iMask1.getSeed(i);
@@ -242,13 +244,13 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                             return false;
                         }
                     }));
-
+                    
                     double dAvGrad = 0.0;
                     double dCounter = 0.0;
                     for (MatrixEntry me : Structure.loPoints) {
                         N8 oN8 = new N8(iMask1, me.i, me.j);
                         if (oN8.isBorder()) {
-                            dAvGrad += grad.iaPixels[me.i][me.j];
+                            dAvGrad += getMaxDeriNeighbor(me, grad);
                             dCounter += 1.0;
                         }
                     }
@@ -372,6 +374,23 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
         return lCircles;
     }
+    
+        public static double getMaxDeriNeighbor(MatrixEntry meRef, ImageInt iGrad) {
+        List<MatrixEntry> loRef = iGrad.getNeighborsN8(meRef.i, meRef.j);
+        loRef.add(meRef);
+        double dMax = 0.0;
+        MatrixEntry meChosen = new MatrixEntry();
+        for (MatrixEntry me : loRef) {
+            if (me != null) {
+                if (iGrad.iaPixels[me.i][me.j] > dMax) {
+                    dMax = iGrad.iaPixels[me.i][me.j];
+                    meChosen=me;
+                }
+            }
+        }
+        iGrad.setPoint(meChosen, 0);
+        return dMax;
+        }
 
     public static int[] getCut(Settings oSettings) {
         boolean bCutTop = ((boolean) oSettings.getSettingsValue("BcutyTop"));
