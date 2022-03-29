@@ -119,7 +119,7 @@ public class Prot_tivPIVBUBResultDisplay extends Protocol implements Serializabl
             if ((boolean) controller.getCurrentMethod().getProtocol("inter areas").getSettingsValue("PIV_Interrogation")) {
                 StretchFactor = StretchFactor * 4.0;
                 maxVecLength = maxVecLength / 4.0;
-                List<VelocityVec> vecsPIV = data.oGrid.getVectors();
+                List<VelocityVec> vecsPIV = data.oGrid.getVectors(true);
                 Colorbar oColBar2 = new Colorbar.StartEndLinearColorBar(0.0, maxVecLength, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
                 imgResult = PaintVectors.paintOnImage(vecsPIV, oColBar2, imgResult, null, StretchFactor);
 

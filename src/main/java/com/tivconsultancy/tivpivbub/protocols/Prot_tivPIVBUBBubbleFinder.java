@@ -379,16 +379,16 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         List<MatrixEntry> loRef = iGrad.getNeighborsN8(meRef.i, meRef.j);
         loRef.add(meRef);
         double dMax = 0.0;
-        MatrixEntry meChosen = new MatrixEntry();
+       // MatrixEntry meChosen = new MatrixEntry();
         for (MatrixEntry me : loRef) {
             if (me != null) {
                 if (iGrad.iaPixels[me.i][me.j] > dMax) {
                     dMax = iGrad.iaPixels[me.i][me.j];
-                    meChosen=me;
+                    //meChosen=me;
                 }
             }
         }
-        iGrad.setPoint(meChosen, 0);
+        //iGrad.setPoint(meChosen, 0);
         return dMax;
         }
 

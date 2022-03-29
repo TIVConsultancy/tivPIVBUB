@@ -120,7 +120,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                 if ((boolean) controller.getCurrentMethod().getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
                     DataPIV dataPIV = ((PIVBUBController) StaticReferences.controller).getDataPIV();
                     List<sqlEntryPIV> entriesPIV = new ArrayList<>();
-                    for (Vector v : dataPIV.oGrid.getVectors()) {
+                    for (Vector v : dataPIV.oGrid.getVectors(false)) {
                         double dPosX = (v.getPosX() - refPX_X) * dResolution + refM_X;
                         double dPosY = refM_Y - (v.getPosY() - refPX_Y) * dResolution;
                         double dPosZ = refM_Z;
@@ -190,7 +190,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
                 float time = (float) getTimeStamp();
                 if ((boolean) controller.getCurrentMethod().getProtocol("inter areas").getSettingsValue("PIV_Interrogation") == true) {
                     DataPIV dataPIV = ((PIVBUBController) StaticReferences.controller).getDataPIV();
-                    for (Vector v : dataPIV.oGrid.getVectors()) {
+                    for (Vector v : dataPIV.oGrid.getVectors(false)) {
                         float dPosX = (float) ((v.getPosX() - refPX_X) * dResolution + refM_X);
                         float dPosY = (float) (-(v.getPosY() - refPX_Y) * dResolution + refM_Y);
                         float dPosYPx = (float) v.getPosY();
@@ -260,7 +260,7 @@ public class Prot_tivPIVBUBDataHandling extends PIVProtocol {
 
         DataPIV data = ((PIVController) StaticReferences.controller).getDataPIV();
 
-        List<VelocityVec> loVec = data.oGrid.getVectors();
+        List<VelocityVec> loVec = data.oGrid.getVectors(false);
 
         double avgx = Averaging.getMeanAverage(loVec, new Value<Object>() {
             @Override
