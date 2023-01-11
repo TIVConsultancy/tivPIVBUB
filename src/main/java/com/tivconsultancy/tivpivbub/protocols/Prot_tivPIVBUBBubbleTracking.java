@@ -66,6 +66,11 @@ public class Prot_tivPIVBUBBubbleTracking extends Protocol {
         initSettins();
         buildClusters();
     }
+    
+        public Prot_tivPIVBUBBubbleTracking(String sNull) {
+        contours1 = new ImageInt(50, 50, 0);
+        contours2 = new ImageInt(50, 50, 0);
+        }
 
     private void buildLookUp() {
         ((PIVBUBController) StaticReferences.controller).getDataBUB().setImage(outNames.Contours1.toString(), contours1.getBuffImage());
@@ -156,6 +161,69 @@ public class Prot_tivPIVBUBBubbleTracking extends Protocol {
         }
 
         buildLookUp();
+
+    }
+    
+     public void runSkript(PIVBUBController control,ImageInt blackboard) throws UnableToRunException {
+
+        String sMethod = (String) this.getSettingsValue("Tracking");
+
+        try {
+
+//            ImageInt blackboard = (ImageInt) control.getCurrentMethod().getProtocol("preproc").getResults()[0];
+            ImageGrid oGrid = new ImageGrid(blackboard.iaPixels);
+            List<CPXTr> lCPXTr1 = new ArrayList<>();
+            List<CPXTr> lCPXTr2 = new ArrayList<>();
+            HashMap<CPXTr, Shape> map = new HashMap<CPXTr, Shape>();
+            contours1 = new ImageInt(blackboard.iaPixels.length, blackboard.iaPixels[0].length);
+            contours2 = new ImageInt(blackboard.iaPixels.length, blackboard.iaPixels[0].length);
+            if (!getSettingsValue("Reco").toString().contains("ReadMaskandPoints")) {
+                ImageInt iMask1 = (ImageInt) control.getCurrentMethod().getProtocol("mask").getResults()[1];
+                ImageInt iMask2 = (ImageInt) control.getCurrentMethod().getProtocol("mask").getResults()[2];
+
+                lCPXTr1 = getBoundaries(iMask1, contours1);
+                lCPXTr2 = getBoundaries(iMask2, contours2);
+                for (CPXTr CPX : lCPXTr1) {
+                    map.put(CPX, new ArbStructure2(CPX.lo));
+                }
+            } else {
+                for (Shape s : control.getDataBUB().results_Shape.loShapes) {
+                    CPXTr cpx = new CPXTr(new CPX(s.getlmeList(), oGrid));
+                    cpx.oStart = cpx.lo.get(0);
+                    lCPXTr1.add(cpx);
+                    contours1.setPoints(cpx.getPointsME(), 255);
+                    map.put(cpx, s);
+                }
+                for (Shape s : control.getDataBUB().results_Shape_2nd.loShapes) {
+                    CPXTr cpx = new CPXTr(new CPX(s.getlmeList(), oGrid));
+                    cpx.oStart = cpx.lo.get(0);
+                    lCPXTr2.add(cpx);
+                    contours2.setPoints(cpx.getPointsME(), 255);
+                }
+            }
+
+            if (sMethod.toString().contains("Nearest_Neighbor_Tracking")) {
+//                System.out.println("Simple Tracking with " + lCPXTr1.size() + " to " + lCPXTr2.size() + " trackable shapes");
+                Map<CPXTr, VelocityVec> oVelocityVectors = simpleTrackingStructs(lCPXTr1, lCPXTr2);
+                control.getDataBUB().results_BT = new ReturnContainerBoundaryTracking(oVelocityVectors, lCPXTr1, lCPXTr2);
+            }
+
+            if (sMethod.toString().contains("Boundary Tracking")) {
+//                System.out.println("Boundary Tracking with " + lCPXTr1.size() + " to " + lCPXTr2.size() + " trackable shapes");
+                control.getDataBUB().results_BT = BoundTrackZiegenhein_2018.runBoundTrack(this, lCPXTr1, lCPXTr2, oGrid, map);
+            }
+
+            control.getDataBUB().iaEdgesFirst = blackboard.iaPixels;
+//            List<VelocityVec> vecs = new ArrayList<>(control.getDataBUB().results_BT.velocityVectors.values());
+//            Colorbar oColBar = new Colorbar.StartEndLinearColorBar(0.0, getMaxVecLength(vecs).dEnum * 1.1, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
+//            VectorDisplay = PaintVectors.paintOnImage(vecs, oColBar, blackboard.getBuffImage(), null, getAutoStretchFactor(vecs, blackboard.iaPixels.length / 10.0, 1.0));
+
+        } catch (EmptySetException ex) {
+            StaticReferences.getlog().log(Level.SEVERE, "Unable to track bubbles", ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Prot_tivPIVBUBBubbleTracking.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
 
     }
 
@@ -272,24 +340,28 @@ public class Prot_tivPIVBUBBubbleTracking extends Protocol {
         int iCounter = 0;
         Map<CPXTr, VelocityVec> oVelocityVectors = new HashMap<>();
         for (CPXTr cpx1 : lCPXTr1) {
-            List<MatrixEntry> loo = new ArrayList<>();
-            MatrixEntry me = MatrixEntry.getMeanEntry(ImagePoint.getMEList(cpx1.lo));
+            List<OrderedPair> loo = new ArrayList<>();
+            OrderedPair opMean = MatrixEntry.getMean(ImagePoint.getMEList(cpx1.lo));
             for (CPXTr cpx2 : lCPXTr2) {
-                MatrixEntry me2 = MatrixEntry.getMeanEntry(ImagePoint.getMEList(cpx2.lo));
-                if (me2.i > me.i + YPlus && me2.i < me.i + YMinus && me2.j < me.j + XPlus && me2.j > me.j + XMinus) {
-                    loo.add(me2);
+                OrderedPair opMean2 = MatrixEntry.getMean(ImagePoint.getMEList(cpx2.lo));
+                if (opMean2.y > opMean.y + YPlus && opMean2.y < opMean.y + YMinus && opMean2.x < opMean.x + XPlus && opMean2.x > opMean.x + XMinus) {
+                    loo.add(opMean2);
+
                 }
             }
             if (loo.size() == 1) {
-                VelocityVec oVecSubPix = new VelocityVec(-(double) (me.j - loo.get(0).j), -(double) (me.i - loo.get(0).i), new OrderedPair(me.j, me.i));
+                
+                //VelocityVec oVecSubPix = new VelocityVec(-(double) (me.j - loo.get(0).j), -(double) (me.i - loo.get(0).i), opMean);
+                VelocityVec oVecSubPix = new VelocityVec(- (opMean.x - loo.get(0).x), -(opMean.y - loo.get(0).y), opMean);
+                //System.out.println(oVecSubPix.getVelocityY()+" "+oVecSubPix.getVelocityX()+" --vs-- "+oVecSubPix2.getVelocityY()+" "+oVecSubPix2.getVelocityX());
                 oVelocityVectors.put(cpx1, oVecSubPix);
                 iCounter++;
             } else {
-                VelocityVec oVecSubPix = new VelocityVec(0.0, 0.0, new OrderedPair(me.j, me.i));
+                VelocityVec oVecSubPix = new VelocityVec(0.0, 0.0, opMean);
                 oVelocityVectors.put(cpx1, oVecSubPix);
             }
         }
-        System.out.println("Found tracks " + iCounter);
+//        System.out.println("Found pairs " + iCounter);
         return oVelocityVectors;
     }
 

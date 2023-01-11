@@ -49,6 +49,10 @@ public class Prot_tivPIVBUBMergeShapeBoundTrack extends Protocol {
         initSettins();
         buildClusters();
     }
+    
+    public Prot_tivPIVBUBMergeShapeBoundTrack(String sNull) {
+        
+    }
 
     private void buildLookUp() {
 
@@ -173,6 +177,102 @@ public class Prot_tivPIVBUBMergeShapeBoundTrack extends Protocol {
         
 
         buildLookUp();
+
+    }
+    
+    public void runSkript(PIVBUBController controller) throws UnableToRunException {
+
+
+        ImageInt contourtsShapeFit = new ImageInt(controller.getDataBUB().iaEdgesFirst);
+        List<Shape> circles = controller.getDataBUB().results_Shape.loShapes;
+        Map<CPXTr, VelocityVec> interfaceVelo = controller.getDataBUB().results_BT.velocityVectors;
+
+        Map<CPXTr, Shape> connectionMap = new HashMap<>();
+
+        int iCounter = 256;
+        for (Shape c : circles) {
+            contourtsShapeFit.setPoints(c.getlmeList(), iCounter);
+            iCounter++;
+        }
+
+        for (CPXTr cpx : interfaceVelo.keySet()) {
+            List<Integer> votes = getEmptyVoteList(circles.size() + 1);
+            for (ImagePoint p : cpx.lo) {
+                int circIndex = contourtsShapeFit.getPointIMGP(p);
+                if (circIndex > 255) {
+                    int currentVote = votes.get(circIndex - 256);
+                    currentVote++;
+                    votes.set(circIndex - 256, currentVote);
+                }
+            }
+            EnumObject o = Sorting.getMaxCharacteristic2(votes, new Sorting.Characteristic<Integer>() {
+                                                     @Override
+                                                     public Double getCharacteristicValue(Integer pParameter) {
+                                                         return pParameter * 1.0;
+                                                     }
+                                                 });
+            if (o.dEnum > 1) {
+                int circMostVotes = votes.indexOf(Integer.valueOf(o.dEnum.intValue()));
+                connectionMap.put(cpx, circles.get(circMostVotes));
+            }
+        }
+
+        Map<Shape, List<CPXTr>> reverseConnectionMap = new HashMap<>();
+
+        for (Shape c : circles) {
+            List<CPXTr> contoursConnectedToCircle = new ArrayList<>();
+            for (Map.Entry<CPXTr, Shape> entry : connectionMap.entrySet()) {
+                if (entry.getValue().equals(c)) {
+                    contoursConnectedToCircle.add(entry.getKey());
+                }
+            }
+            if (!contoursConnectedToCircle.isEmpty()) {
+                reverseConnectionMap.put(c, contoursConnectedToCircle);
+            }
+        }
+
+        ImageInt connected = new ImageInt(contourtsShapeFit.iaPixels.length, contourtsShapeFit.iaPixels[0].length, 0);
+
+        for (Map.Entry<Shape, List<CPXTr>> entry : reverseConnectionMap.entrySet()) {
+//            int greyValue = (int) (Math.random()*255.0);
+            double dvx = 0.0;
+            double dvy = 0.0;
+            double dvz = 0.0;
+            double x = 0.0;
+            double y = 0.0;
+            int iCount = 0;
+            for (CPXTr cpx : entry.getValue()) {
+                if (cpx == null) {
+                    continue;
+                }
+                VelocityVec vec = interfaceVelo.get(cpx);
+                dvx = dvx + vec.getVelocityX();
+                dvy = dvy + vec.getVelocityY();
+//                dvz = dvx + vec.getVelocityZ();
+                x = x + vec.getPosX();
+                y = y + vec.getPosY();
+                iCount++;
+//                connected.setPointsIMGP(cpx.getPoints(), greyValue);
+            }
+            if (iCount > 0) {
+                connected.setPoints(entry.getKey().getlmeList(), 255);                
+                controller.getDataBUB().results.put(entry.getKey(), new VelocityVec(dvx / iCount, dvy / iCount, new OrderedPair(x / iCount, y / iCount)));
+            }
+        }
+
+//        try {
+//            List<VelocityVec> vecs = new ArrayList<>(controller.getDataBUB().results.values());
+//            Colorbar oColBar = new Colorbar.StartEndLinearColorBar(0.0, getMaxVecLength(vecs).dEnum * 1.1, Colorbar.StartEndLinearColorBar.getColdToWarmRainbow2(), new ColorSpaceCIEELab(), (Colorbar.StartEndLinearColorBar.ColorOperation<Double>) (Double pParameter) -> pParameter);
+//            VectorDisplay = PaintVectors.paintOnImage(vecs, oColBar, connected.getBuffImage(), null, getAutoStretchFactor(vecs, connected.iaPixels.length / 10.0, 1.0));
+//        } catch (EmptySetException ex) {
+//            StaticReferences.getlog().log(Level.SEVERE, "Unable to track boundaries", ex);
+//            VectorDisplay = connected.getBuffImage();
+//        } catch (IOException ex) {
+//            Logger.getLogger(Prot_tivPIVBUBBubbleTracking.class.getName()).log(Level.SEVERE, null, ex);
+//            VectorDisplay = connected.getBuffImage();
+//        }
+
+        
 
     }
 

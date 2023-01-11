@@ -23,6 +23,11 @@ public class PIVBUBController extends PIVController {
         initDatabase();
     }
 
+    public PIVBUBController(String sNull) {
+        super(sNull);
+        initDatabase();
+    }
+
     @Override
     protected void initSubControllers() {
         super.initSubControllers();
@@ -43,9 +48,9 @@ public class PIVBUBController extends PIVController {
         boolean bTrack = this.getCurrentMethod().getProtocol("bubtrack").getSettingsValue("Tracking") == "Disable_Tracking" ? false : true;
         if (this.neglect_prevStep) {
             this.databaseBUB1Step.results_Shape_2nd = null;
-            this.neglect_prevStep=false;
+            this.neglect_prevStep = false;
         }
-        if (this.databaseBUB1Step.results_Shape_2nd != null && bTrack ) {
+        if (this.databaseBUB1Step.results_Shape_2nd != null && bTrack) {
             databaseBUBPrevStep.results_Shape_2nd = this.databaseBUB1Step.results_Shape_2nd;
         }
         super.startNewIndexStep();

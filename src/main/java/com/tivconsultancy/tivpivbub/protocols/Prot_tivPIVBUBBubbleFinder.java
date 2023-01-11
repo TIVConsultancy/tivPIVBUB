@@ -68,6 +68,11 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         buildClusters();
     }
 
+    public Prot_tivPIVBUBBubbleFinder(String sNull) {
+        edges1st = new ImageInt(50, 50, 0);
+        shapeFit = new ImageInt(50, 50, 0);
+    }
+
     private void buildLookUp() {
         if (edges1st != null) {
             ((PIVBUBController) StaticReferences.controller).getDataBUB().setImage(outNames.EdgesShapeFit.toString(), edges1st.getBuffImage());
@@ -136,9 +141,9 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
             if (controller.getDataBUB().results_Shape_2nd == null) {
                 System.out.println("Bubble Identification using given Mask and Ellipse fit");
-                
+
                 grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 1);
-                
+
                 ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[1];
                 try {
                     List<Shape> lsC = getBoundEllipses(iMask1, grad);
@@ -204,6 +209,112 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         buildLookUp();
 
     }
+    
+    public void runSkript(PIVBUBController controller,List<File> sNames,String sPath,ImageInt iMask1,ImageInt iMask2) throws UnableToRunException {
+
+//        PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
+//        List<ImagePath> sNames = controller.getCurrentMethod().getInputImages();
+        ImageInt readFirst = new ImageInt(controller.getDataPIV().iaReadInFirst);
+        ImageInt grad = new ImageInt(readFirst.iaPixels.length, readFirst.iaPixels[0].length);
+//        String sPath = controller.getCurrentFileSelected().getParent();
+        String sFolder =(String) getSettingsValue("mask_Path");
+        boolean bTracking = getSettingsValue("Tracking").toString().contains("Disable_Tracking") ? false : true;
+        //******Method 1*******
+        if (this.getSettingsValue("Reco").toString().contains("Edge_Detector_and_Ellipse_fit")) {
+
+            if (controller.getDataBUB().results_Shape_2nd == null) {
+//                System.out.println("Bubble Identification using Edge_Detector_and_Ellipse_fit");
+                edges1st = OpenTIV_Edges.performEdgeDetecting(this, readFirst);
+                controller.getDataBUB().iaEdgesRAWFirst = edges1st.clone().iaPixels;
+                edges1st = OpenTIV_Edges.performEdgeOperations(this, edges1st, readFirst);
+                controller.getDataBUB().results_Shape = OpenTIV_Edges.performShapeFitting(this, edges1st);
+            } else {
+                controller.getDataBUB().results_Shape = controller.getDataBUB().results_Shape_2nd;
+            }
+
+            if (bTracking) {
+                ImageInt readSecond = new ImageInt(controller.getDataPIV().iaReadInSecond);
+                edges2nd = OpenTIV_Edges.performEdgeDetecting(this, readSecond);
+                controller.getDataBUB().iaEdgesRAWSecond = edges2nd.clone().iaPixels;
+                edges2nd = OpenTIV_Edges.performEdgeOperations(this, edges2nd, readSecond);
+                controller.getDataBUB().results_Shape_2nd = OpenTIV_Edges.performShapeFitting(this, edges2nd);
+
+            }
+
+            //******Method 2*******
+        } else if (this.getSettingsValue("Reco").toString().contains("Read_Mask_and_Ellipse_fit")) {
+
+            if (controller.getDataBUB().results_Shape_2nd == null) {
+//                System.out.println("Bubble Identification using given Mask and Ellipse fit");
+
+                grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 1);
+
+//                ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[1];
+                try {
+                    List<Shape> lsC = getBoundEllipses(iMask1, grad);
+                    controller.getDataBUB().results_Shape = new OpenTIV_Edges.ReturnContainer_Shape(lsC, readFirst);
+
+                } catch (IOException ex) {
+                    Logger.getLogger(Prot_tivPIVBUBBubbleFinder.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else {
+                controller.getDataBUB().results_Shape = controller.getDataBUB().results_Shape_2nd;
+            }
+
+            if (bTracking) {
+                ImageInt readSecond = new ImageInt(controller.getDataPIV().iaReadInSecond);
+                //ImageInt grad = new ImageInt(readSecond.iaPixels.length, readSecond.iaPixels[0].length);
+                grad.iaPixels = getThinEdge(readSecond.iaPixels, Boolean.FALSE, null, null, 1);
+//                ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[2];
+                try {
+                    List<Shape> lsC = getBoundEllipses(iMask2, grad);
+                    controller.getDataBUB().results_Shape_2nd = new OpenTIV_Edges.ReturnContainer_Shape(lsC, readFirst);
+
+                } catch (IOException ex) {
+                    Logger.getLogger(Prot_tivPIVBUBBubbleFinder.class.getName()).log(Level.SEVERE, null, ex);
+                }
+
+            }
+
+            //******Method 3*******
+        } else if (this.getSettingsValue("Reco").toString().contains("ReadMaskandPoints")) {
+
+            if (controller.getDataBUB().results_Shape_2nd == null) {
+//                System.out.println("Bubble Identification using given Mask and Points");
+                //ImageInt grad = new ImageInt(readFirst.iaPixels.length, readFirst.iaPixels[0].length);
+                grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 1);
+//                ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[1];
+                String sName = sNames.get(0).getName().substring(sNames.get(0).getName().indexOf("_"), sNames.get(0).getName().indexOf("."));
+                controller.getDataBUB().results_Shape = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucsSkript(iMask1, grad, sName, sPath, sFolder, controller,this.loSettings), readFirst);
+            } else {
+                controller.getDataBUB().results_Shape = controller.getDataBUB().results_Shape_2nd;
+            }
+
+            if (bTracking) {
+                ImageInt readSecond = new ImageInt(controller.getDataPIV().iaReadInSecond);
+//                ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[2];
+                //ImageInt grad = new ImageInt(readSecond.iaPixels.length, readSecond.iaPixels[0].length);
+                grad.iaPixels = getThinEdge(readSecond.iaPixels, Boolean.FALSE, null, null, 1);
+                String sName = sNames.get(1).getName().substring(sNames.get(1).getName().indexOf("_"), sNames.get(1).getName().indexOf("."));
+                controller.getDataBUB().results_Shape_2nd = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucsSkript(iMask2, grad, sName, sPath, sFolder, controller,this.loSettings), readSecond);
+
+            }
+        }
+        if (controller.getDataBUB().results_Shape != null) {
+            
+            for (Shape o : controller.getDataBUB().results_Shape.loShapes) {
+                readFirst.setPoints(o.getlmeList(), 255);
+                if (!bTracking) {
+                    controller.getDataBUB().results.put(o, new VelocityVec(0.0, 0.0, o.getSubPixelCenter()));
+                }
+            }
+
+        }
+
+        shapeFit = readFirst;
+
+
+    }
 
     public static List<Shape> getArbStrucs(ImageInt iMask1, ImageInt grad, String sName, String sPath, String sFolder, PIVBUBController controller) {
         List<SettingObject> lsc1 = controller.getCurrentMethod().getProtocol("preproc").getAllSettings();
@@ -232,7 +343,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
             }
             //Ascending bubbleJSON.ID order    
             for (int i = 1; i <= iMask1.getMax(); i++) {
-
+                
                 MatrixEntry meStart = iMask1.getSeed(i);
 
                 if (meStart != null) {
@@ -244,7 +355,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                             return false;
                         }
                     }));
-                    
+
                     double dAvGrad = 0.0;
                     double dCounter = 0.0;
                     for (MatrixEntry me : Structure.loPoints) {
@@ -286,12 +397,114 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                         continue;
                     }
                     if (lmeBorder.size() > 2) {
-                        Structure.loPoints = lmeBorder;
+                        Structure.loBorderPoints = lmeBorder;
                         Structure.getMajorMinor(lmeBorder);
                     } else {
+                        Structure.loBorderPoints = Structure.loPoints;
                         Structure.getMajorMinor(Structure.loPoints);
                     }
                     Structure.dAvergeGreyDerivative = dAvGrad;
+                    Structure.loBorderPoints.get(0).dValue = i;
+                    lsArbstruc.add(Structure);
+                }
+            }
+
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Prot_tivPIVBUBBubbleFinder.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(Prot_tivPIVBUBBubbleFinder.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return lsArbstruc;
+    }
+    
+     public static List<Shape> getArbStrucsSkript(ImageInt iMask1, ImageInt grad, String sName, String sPath, String sFolder, PIVBUBController controller,List<SettingObject> lsc1) {
+        Settings oSet = new Settings() {
+            @Override
+            public String getType() {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+
+            @Override
+            public void buildClusters() {
+                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+            }
+        };
+        oSet.loSettings.addAll(lsc1);
+        int[] iCuts = getCut(oSet);
+        List<Shape> lsArbstruc = new ArrayList<>();
+        Gson gson = new Gson();
+        try {
+            JsonReader reader = new JsonReader(new FileReader(sFolder + System.getProperty("file.separator") + sName + ".json"));
+            List<BubbleJSON> in = gson.fromJson(reader, new TypeToken<List<BubbleJSON>>() {
+            }.getType());
+            reader.close();
+            for (BubbleJSON bubbleJSON : in) {
+                bubbleJSON.createLme(iCuts);
+            }
+            //Ascending bubbleJSON.ID order    
+            for (int i = 1; i <= iMask1.getMax(); i++) {
+
+                MatrixEntry meStart = iMask1.getSeed(i);
+
+                if (meStart != null) {
+                    int iValue = i;
+                    ArbStructure2 Structure = new ArbStructure2((new Morphology()).markFillN8(iMask1, meStart.i, meStart.j, (pParameter) -> {
+                        if (iMask1.iaPixels[pParameter.i][pParameter.j] == iValue) {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    }));
+
+                    double dAvGrad = 0.0;
+                    double dCounter = 0.0;
+                    for (MatrixEntry me : Structure.loPoints) {
+                        N8 oN8 = new N8(iMask1, me.i, me.j);
+                        if (oN8.isBorder()) {
+                            dAvGrad += getMaxDeriNeighbor(me, grad);
+                            dCounter += 1.0;
+                        }
+                    }
+                    dAvGrad = dAvGrad / dCounter;
+                    if (in.size() > 0) {
+                        if (in.get(0).ID == i) {
+                            ImageInt iOneBubCorrected = new ImageInt(iMask1.iaPixels.length, iMask1.iaPixels[0].length);
+                            BubbleJSON bub = in.get(0);
+                            for (int j = 0; j < bub.lme.size() - 1; j++) {
+                                Line oL = new Line(bub.lme.get(j), bub.lme.get(j + 1));
+                                oL.setLine(iOneBubCorrected, 255);
+                            }
+                            Line oL = new Line(bub.lme.get(0), bub.lme.get(bub.lme.size() - 1));
+                            oL.setLine(iOneBubCorrected, 255);
+                            MatrixEntry meCenter = MatrixEntry.getMeanEntry(bub.lme);
+                            iOneBubCorrected.setPoints(new Morphology().markFillN4(iOneBubCorrected, meCenter.i, meCenter.j), 255);
+                            iOneBubCorrected.setPoints(Structure.loPoints, 255);
+                            iOneBubCorrected.resetMarkers();
+                            in.remove(0);
+                            Structure = new ArbStructure2((new Morphology()).markFillN8(iOneBubCorrected, meCenter.i, meCenter.j, (pParameter) -> {
+                                if (iOneBubCorrected.iaPixels[pParameter.i][pParameter.j] == 255) {
+                                    return true;
+                                } else {
+                                    return false;
+                                }
+                            }));
+                        }
+                    }
+                    ImageInt iOneBub = new ImageInt(iMask1.iaPixels.length, iMask1.iaPixels[0].length);
+                    iOneBub.setPoints(Structure.loPoints, 255);
+                    List<MatrixEntry> lmeBorder = Structure.getBorderPoints(iOneBub);
+                    if (Structure.loPoints.size() < 2) {
+                        continue;
+                    }
+                    if (lmeBorder.size() > 2) {
+                        Structure.loBorderPoints = lmeBorder;
+                        Structure.getMajorMinor(lmeBorder);
+                    } else {
+                        Structure.loBorderPoints = Structure.loPoints;
+                        Structure.getMajorMinor(Structure.loPoints);
+                    }
+                    Structure.dAvergeGreyDerivative = dAvGrad;
+                    Structure.loBorderPoints.get(0).dValue = i;
                     lsArbstruc.add(Structure);
                 }
             }
@@ -374,12 +587,12 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
         return lCircles;
     }
-    
-        public static double getMaxDeriNeighbor(MatrixEntry meRef, ImageInt iGrad) {
+
+    public static double getMaxDeriNeighbor(MatrixEntry meRef, ImageInt iGrad) {
         List<MatrixEntry> loRef = iGrad.getNeighborsN8(meRef.i, meRef.j);
         loRef.add(meRef);
         double dMax = 0.0;
-       // MatrixEntry meChosen = new MatrixEntry();
+        // MatrixEntry meChosen = new MatrixEntry();
         for (MatrixEntry me : loRef) {
             if (me != null) {
                 if (iGrad.iaPixels[me.i][me.j] > dMax) {
@@ -390,7 +603,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         }
         //iGrad.setPoint(meChosen, 0);
         return dMax;
-        }
+    }
 
     public static int[] getCut(Settings oSettings) {
         boolean bCutTop = ((boolean) oSettings.getSettingsValue("BcutyTop"));
