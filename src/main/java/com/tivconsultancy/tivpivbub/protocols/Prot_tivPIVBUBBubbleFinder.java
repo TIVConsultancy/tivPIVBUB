@@ -32,6 +32,7 @@ import com.tivconsultancy.opentiv.physics.vectors.VelocityVec;
 import com.tivconsultancy.opentiv.preprocessor.OpenTIV_PreProc;
 import com.tivconsultancy.tivGUI.StaticReferences;
 import com.tivconsultancy.tivpivbub.PIVBUBController;
+import com.tivconsultancy.tivpivbub.data.BubSubArea;
 import com.tivconsultancy.tivpivbub.data.DataBUB.BubbleJSON;
 import delete.com.tivconsultancy.opentiv.devgui.main.ImagePath;
 import java.awt.image.BufferedImage;
@@ -44,6 +45,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.imageio.ImageIO;
 
 /**
  *
@@ -59,10 +61,12 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
     ImageInt edges2nd;
 
     ImageInt shapeFit;
+    ImageInt avImage;
 
     public Prot_tivPIVBUBBubbleFinder() {
         edges1st = new ImageInt(50, 50, 0);
         shapeFit = new ImageInt(50, 50, 0);
+        avImage = null;
         buildLookUp();
         initSettins();
         buildClusters();
@@ -71,6 +75,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
     public Prot_tivPIVBUBBubbleFinder(String sNull) {
         edges1st = new ImageInt(50, 50, 0);
         shapeFit = new ImageInt(50, 50, 0);
+        avImage = null;
     }
 
     private void buildLookUp() {
@@ -194,6 +199,14 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                 controller.getDataBUB().results_Shape_2nd = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucs(iMask1, grad, sName, sPath, sFolder, controller), readSecond);
 
             }
+        } //******Single Bubble*******
+        else if (this.getSettingsValue("Reco").toString().contains("SingleBubble")) {
+            System.out.println("Single Bubble Identification");
+            try {
+                getSingleBubbles(controller);
+            } catch (IOException ex) {
+                Logger.getLogger(Prot_tivPIVBUBBubbleFinder.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
         if (controller.getDataBUB().results_Shape != null) {
             for (Shape o : controller.getDataBUB().results_Shape.loShapes) {
@@ -209,15 +222,15 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         buildLookUp();
 
     }
-    
-    public void runSkript(PIVBUBController controller,List<File> sNames,String sPath,ImageInt iMask1,ImageInt iMask2) throws UnableToRunException {
+
+    public void runSkript(PIVBUBController controller, List<File> sNames, String sPath, ImageInt iMask1, ImageInt iMask2) throws UnableToRunException {
 
 //        PIVBUBController controller = ((PIVBUBController) StaticReferences.controller);
 //        List<ImagePath> sNames = controller.getCurrentMethod().getInputImages();
         ImageInt readFirst = new ImageInt(controller.getDataPIV().iaReadInFirst);
         ImageInt grad = new ImageInt(readFirst.iaPixels.length, readFirst.iaPixels[0].length);
 //        String sPath = controller.getCurrentFileSelected().getParent();
-        String sFolder =(String) getSettingsValue("mask_Path");
+        String sFolder = (String) getSettingsValue("mask_Path");
         boolean bTracking = getSettingsValue("Tracking").toString().contains("Disable_Tracking") ? false : true;
         //******Method 1*******
         if (this.getSettingsValue("Reco").toString().contains("Edge_Detector_and_Ellipse_fit")) {
@@ -285,7 +298,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                 grad.iaPixels = getThinEdge(readFirst.iaPixels, Boolean.FALSE, null, null, 1);
 //                ImageInt iMask1 = (ImageInt) controller.getCurrentMethod().getProtocol("mask").getResults()[1];
                 String sName = sNames.get(0).getName().substring(sNames.get(0).getName().indexOf("_"), sNames.get(0).getName().indexOf("."));
-                controller.getDataBUB().results_Shape = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucsSkript(iMask1, grad, sName, sPath, sFolder, controller,this.loSettings), readFirst);
+                controller.getDataBUB().results_Shape = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucsSkript(iMask1, grad, sName, sPath, sFolder, controller, this.loSettings), readFirst);
             } else {
                 controller.getDataBUB().results_Shape = controller.getDataBUB().results_Shape_2nd;
             }
@@ -296,12 +309,12 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
                 //ImageInt grad = new ImageInt(readSecond.iaPixels.length, readSecond.iaPixels[0].length);
                 grad.iaPixels = getThinEdge(readSecond.iaPixels, Boolean.FALSE, null, null, 1);
                 String sName = sNames.get(1).getName().substring(sNames.get(1).getName().indexOf("_"), sNames.get(1).getName().indexOf("."));
-                controller.getDataBUB().results_Shape_2nd = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucsSkript(iMask2, grad, sName, sPath, sFolder, controller,this.loSettings), readSecond);
+                controller.getDataBUB().results_Shape_2nd = new OpenTIV_Edges.ReturnContainer_Shape(getArbStrucsSkript(iMask2, grad, sName, sPath, sFolder, controller, this.loSettings), readSecond);
 
             }
         }
         if (controller.getDataBUB().results_Shape != null) {
-            
+
             for (Shape o : controller.getDataBUB().results_Shape.loShapes) {
                 readFirst.setPoints(o.getlmeList(), 255);
                 if (!bTracking) {
@@ -313,7 +326,177 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
 
         shapeFit = readFirst;
 
+    }
 
+    public List<Shape> getSingleBubbles(PIVBUBController controller) throws IOException {
+        List<Shape> lsBubbles = new ArrayList<>();
+        if (this.avImage == null) {
+            List<File> lFiles = controller.getInputFiles("");
+            this.avImage = ImageInt.getaveragePic(lFiles.subList(0, lFiles.size() > 100 ? 100 : lFiles.size()));
+        }
+        ImageInt iaImage = new ImageInt(controller.getDataPIV().iaReadInFirst);
+        System.out.println(iaImage.getMax() + " " + iaImage.getMean());
+        System.out.println(avImage.getMax() + " " + avImage.getMean());
+        iaImage.divide(avImage, 254);
+
+        iaImage = BasicIMGOper.threshold(iaImage, 180);
+        if ((boolean) this.getSettingsValue("Tracer")) {
+            Morphology.dilatation(iaImage);
+            Morphology.dilatation(iaImage);
+            Morphology.erosion(iaImage);
+            Morphology.erosion(iaImage);
+        }
+        iaImage = BasicIMGOper.threshold(iaImage, 127);
+
+        File oPath = new File(controller.getCurrentFileSelected().getParent() + System.getProperty("file.separator") + "ResultImages");
+//        if (!oPath.exists()) {
+//            oPath.mkdir();
+//        }
+        ImageIO.write(iaImage.getBuffImage(), "png", new File(oPath.getPath() + System.getProperty("file.separator") + "PIV_BT.jpg"));
+//        ImageIO.write(avImage.getBuffImage(), "png", new File(oPath.getPath() + System.getProperty("file.separator") + "AV.jpg"));
+        return lsBubbles;
+    }
+
+    public static List<BubSubArea> divideInSubarea(int[][] iaImage, int[][] iaOrigImage, int iSubAreaSize, int iCounts, int iThres) throws IOException {
+
+        List<MatrixEntry> lmeTopLeft = new ArrayList<>();
+        List<MatrixEntry> lmeBottomRight = new ArrayList<>();
+
+        for (int i = 0; i < iaImage.length; i = i + iSubAreaSize) {
+            for (int j = 0; j < iaImage[0].length; j = j + iSubAreaSize) {
+                lmeTopLeft.add(new MatrixEntry(i, j));
+                lmeBottomRight.add(new MatrixEntry(i + iSubAreaSize < iaImage.length ? i + iSubAreaSize : iaImage.length - 1,
+                        j + iSubAreaSize < iaImage[0].length ? j + iSubAreaSize : iaImage[0].length - 1));
+            }
+
+        }
+
+        for (int t = 0; t < lmeTopLeft.size(); t++) {
+            int iSum = 0;
+            for (int i = lmeTopLeft.get(t).i; i < lmeBottomRight.get(t).i; i++) {
+                for (int j = lmeTopLeft.get(t).j; j < lmeBottomRight.get(t).j; j++) {
+                    if (iaImage[i][j] < iThres) {
+                        iSum++;
+                    }
+                }
+
+            }
+            if (iSum > iCounts) {
+                lmeTopLeft.get(t).dValue = 1;
+            } else {
+                lmeTopLeft.get(t).dValue = -1;
+            }
+        }
+
+        int[][] iaMatrixBoard = new int[iaImage.length / iSubAreaSize + 1][iaImage[0].length / iSubAreaSize + 1];
+        for (int i = 0; i < iaMatrixBoard.length; i++) {
+            for (int j = 0; j < iaMatrixBoard[0].length; j++) {
+                iaMatrixBoard[i][j] = 255;
+            }
+        }
+
+        for (int t = 0; t < lmeTopLeft.size(); t++) {
+            iaMatrixBoard[lmeTopLeft.get(t).i / iSubAreaSize][lmeTopLeft.get(t).j / iSubAreaSize] = lmeTopLeft.get(t).dValue < 0 ? 255 : 0;
+        }
+
+        double dExpandSubAreas = 0.5; // In Percantage of SubSizeArea
+        int iCountFillT1 = 0;
+        List<MatrixEntry> lmeTopLeftUnite = new ArrayList<>();
+        List<MatrixEntry> lmeBottomRightUnite = new ArrayList<>();
+        ImageInt MatrixBord = new ImageInt(iaMatrixBoard);
+        for (int i = 0; i < iaMatrixBoard.length; i++) {
+            for (int j = 0; j < iaMatrixBoard[0].length; j++) {
+                if (MatrixBord.iaPixels[i][j] < 127) {
+                    List<MatrixEntry> lme = fillAreaIterative4Point(MatrixBord, new MatrixEntry(i, j), 127, 128 + iCountFillT1 * 30, 100);
+                    MatrixEntry meTL = MatrixEntry.getMinIJPoint(lme);
+                    meTL.i = (int) ((meTL.i - dExpandSubAreas > 0 ? meTL.i - dExpandSubAreas : 0) * iSubAreaSize);
+                    meTL.j = (int) ((meTL.j - dExpandSubAreas > 0 ? meTL.j - dExpandSubAreas : 0) * iSubAreaSize);
+                    lmeTopLeftUnite.add(meTL);
+                    MatrixEntry meBR = MatrixEntry.getMaxIJPoint(lme);
+                    meBR.i = (int) ((meBR.i + 1 + dExpandSubAreas) * iSubAreaSize < iaImage.length ? (meBR.i + 1 + dExpandSubAreas) * iSubAreaSize : iaImage.length - 1);
+                    meBR.j = (int) ((meBR.j + 1 + dExpandSubAreas) * iSubAreaSize < iaImage[0].length ? (meBR.j + 1 + dExpandSubAreas) * iSubAreaSize : iaImage[0].length - 1);
+                    lmeBottomRightUnite.add(meBR);
+                }
+                iCountFillT1++;
+            }
+
+        }
+
+        List<BubSubArea> loSubAreas = new ArrayList<>();
+
+        for (int t = 0; t < lmeTopLeftUnite.size(); t++) {
+            int[][] iaContent = new int[lmeBottomRightUnite.get(t).i - lmeTopLeftUnite.get(t).i][lmeBottomRightUnite.get(t).j - lmeTopLeftUnite.get(t).j];
+            for (int i = lmeTopLeftUnite.get(t).i; i < lmeBottomRightUnite.get(t).i && i < iaImage.length; i++) {
+                for (int j = lmeTopLeftUnite.get(t).j; j < lmeBottomRightUnite.get(t).j && j < iaImage[0].length; j++) {
+                    iaContent[i - lmeTopLeftUnite.get(t).i][j - lmeTopLeftUnite.get(t).j] = iaOrigImage[i][j];
+                }
+            }
+            BubSubArea oSub = new BubSubArea(lmeTopLeftUnite.get(t), lmeBottomRightUnite.get(t), iaContent);
+            loSubAreas.add(oSub);
+        }
+
+        return loSubAreas;
+    }
+
+    public static List<MatrixEntry> fillAreaIterative4Point(ImageInt iaInput, MatrixEntry meStart, int iInfimum, int iFill, int iRadius) {
+        //if (Matrix.getMax(iaInput) <= 254 && Matrix.getMin(iaInput) >= 0) {
+
+        List<MatrixEntry> almeiFilledPoints = new ArrayList<MatrixEntry>();
+        List<MatrixEntry> lmeStack = new ArrayList<MatrixEntry>();
+        lmeStack.add(meStart);
+        List<MatrixEntry> meBackUp = new ArrayList<MatrixEntry>();
+        List<Integer> iBackUp = new ArrayList<Integer>();
+
+        stacker:
+        while (!(lmeStack.isEmpty())) {
+            MatrixEntry mePop = lmeStack.get(lmeStack.size() - 1);
+            mePop.dValue = iaInput.iaPixels[mePop.i][mePop.j];
+            lmeStack.remove(lmeStack.size() - 1);
+            meBackUp.add(mePop);
+            iBackUp.add(iaInput.iaPixels[mePop.i][mePop.j]);
+            iaInput.iaPixels[mePop.i][mePop.j] = iFill;
+            almeiFilledPoints.add(mePop);
+
+            MatrixEntry meRight = new MatrixEntry(mePop.i, mePop.j + 1);
+            if (iaInput.isInside(meRight.i, meRight.j)) {
+                if (iaInput.iaPixels[meRight.i][meRight.j] <= iInfimum
+                        && mePop.SecondCartesian(meStart) < iRadius) {
+                    lmeStack.add(meRight);
+                }
+            }
+
+            MatrixEntry meTop = new MatrixEntry(mePop.i - 1, mePop.j);
+            if (iaInput.isInside(meTop.i, meTop.j)) {
+                if (iaInput.iaPixels[meTop.i][meTop.j] <= iInfimum
+                        && mePop.SecondCartesian(meStart) < iRadius) {
+                    lmeStack.add(meTop);
+                }
+            }
+
+            MatrixEntry meLeft = new MatrixEntry(mePop.i, mePop.j - 1);
+            if (iaInput.isInside(meLeft.i, meLeft.j)) {
+                if (iaInput.iaPixels[meLeft.i][meLeft.j] <= iInfimum
+                        && mePop.SecondCartesian(meStart) < iRadius) {
+                    lmeStack.add(meLeft);
+                }
+            }
+
+            MatrixEntry meDown = new MatrixEntry(mePop.i + 1, mePop.j);
+            if (iaInput.isInside(meDown.i, meDown.j)) {
+                if (iaInput.iaPixels[meDown.i][meDown.j] <= iInfimum
+                        && mePop.SecondCartesian(meStart) < iRadius) {
+                    lmeStack.add(meDown);
+                }
+            }
+
+            if (mePop.SecondCartesian(meStart) >= iRadius) {
+                iaInput.setPoints(meBackUp);
+                almeiFilledPoints = null;
+                break stacker;
+            }
+        }
+
+        return almeiFilledPoints;
     }
 
     public static List<Shape> getArbStrucs(ImageInt iMask1, ImageInt grad, String sName, String sPath, String sFolder, PIVBUBController controller) {
@@ -343,7 +526,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
             }
             //Ascending bubbleJSON.ID order    
             for (int i = 1; i <= iMask1.getMax(); i++) {
-                
+
                 MatrixEntry meStart = iMask1.getSeed(i);
 
                 if (meStart != null) {
@@ -416,8 +599,8 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         }
         return lsArbstruc;
     }
-    
-     public static List<Shape> getArbStrucsSkript(ImageInt iMask1, ImageInt grad, String sName, String sPath, String sFolder, PIVBUBController controller,List<SettingObject> lsc1) {
+
+    public static List<Shape> getArbStrucsSkript(ImageInt iMask1, ImageInt grad, String sName, String sPath, String sFolder, PIVBUBController controller, List<SettingObject> lsc1) {
         Settings oSet = new Settings() {
             @Override
             public String getType() {
@@ -642,7 +825,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         this.loSettings.add(new SettingObject("Execution Order", "ExecutionOrder", new ArrayList<>(), SettingObject.SettingsType.Object));
 
         //PreProc for Bubble Finder
-        this.loSettings.add(new SettingObject("LinNormalization", "LinNormalization", false, SettingObject.SettingsType.Boolean));
+        this.loSettings.add(new SettingObject("Tracer", "Tracer", false, SettingObject.SettingsType.Boolean));
         this.loSettings.add(new SettingObject("NonLinNormalization", "NonLinNormalization", false, SettingObject.SettingsType.Boolean));
         //Edge Detectors
         this.loSettings.add(new SettingObject("Edge Detector", "OuterEdges", true, SettingObject.SettingsType.Boolean));
@@ -701,7 +884,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
         lsClusters.add(bubbleIdent);
 
         SettingsCluster bubImgPreproc = new SettingsCluster("Bubble Preproc",
-                new String[]{"LinNormalization", "NonLinNormalization"}, this);
+                new String[]{"Tracer", "NonLinNormalization"}, this);
         bubImgPreproc.setDescription("Bubble Image Preprocessing");
         lsClusters.add(bubImgPreproc);
 
@@ -731,6 +914,7 @@ public class Prot_tivPIVBUBBubbleFinder extends Protocol {
     public List<SettingObject> getHints() {
         List<SettingObject> ls = super.getHints();
         ls.add(new SettingObject("Method", "Reco", "ReadMaskandPoints", SettingObject.SettingsType.String));
+        ls.add(new SettingObject("Method", "Reco", "SingleBubble", SettingObject.SettingsType.String));
         ls.add(new SettingObject("Method", "Reco", "Read_Mask_and_Ellipse_fit", SettingObject.SettingsType.String));
         ls.add(new SettingObject("Method", "Reco", "Edge_Detector_and_Ellipse_fit", SettingObject.SettingsType.String));
 
